@@ -1,0 +1,57 @@
+.titulo-pagina {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+}
+
+.barra-acoes {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 1rem;
+}
+
+.input-busca {
+    flex: 1;
+    padding: 6px;
+}
+
+.tabela {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tabela th, .tabela td {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+}
+
+.tabela tr:hover {
+    background: #f9f9f9;
+}
+
+.btn {
+    padding: 6px 10px;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.btn.primario { background: #007bff; color: #fff; }
+.btn.perigo { background: #dc3545; color: #fff; }
+.btn.pequeno { padding: 4px 6px; font-size: 0.8rem; }
+
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-conteudo {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    width: 400px;
+    max-width: 90%;
+}

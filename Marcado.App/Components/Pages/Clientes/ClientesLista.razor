@@ -1,0 +1,74 @@
+@page "/clientes"
+
+@using Marcado.Core.Entidades
+@using Marcado.Core.Servicos
+@inject IClientesServico _clientesServico
+
+<link href="../../../wwwroot/css/clientes-lista.css" rel="stylesheet" />
+
+<PageTitle>Clientes</PageTitle>
+
+<div class="page-container">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Meus Clientes</h2>
+            <button class="btn btn-primary" @onclick="NovoCliente">+ Novo Cliente</button>
+        </div>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Telefone</th>
+                    <th>Observação</th>
+                    <th style="width: 150px;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var cliente in clientes)
+                {
+                    <tr>
+                        <td>@cliente.Nome</td>
+                        <td>@cliente.Telefone</td>
+                        <td>@cliente.Observacao</td>
+                        <td class="actions">
+                            <button class="btn btn-outline" @onclick="() => EditarCliente(cliente.Id)">Editar</button>
+                            <button class="btn btn-secondary" @onclick="() => ExcluirCliente(cliente.Id)">Excluir</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    int usuarioId = 1; // mock até ter auth
+    string filtro = "";
+    List<Marcado.Core.Entidades.Cliente> clientes = new();
+    Marcado.Core.Entidades.Cliente clienteEdicao = new();
+    bool exibirForm = false;
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+
+
+    #region Metodos ciclo de vida
+    protected override async Task OnInitializedAsync() =>
+    clientes = await _clientesServico.ObterClientesAsync(usuarioId);
+
+    private void NovoCliente()
+    {
+        Navigation.NavigateTo("/clientes/novo");
+    }
+
+    private void EditarCliente(int id)
+    {
+        Navigation.NavigateTo($"/clientes/editar/{id}");
+    }
+
+    private async Task ExcluirCliente(int id)
+    {
+        await _clientesServico.DeletarClienteAsync(id);
+        clientes = await _clientesServico.ObterClientesAsync(usuarioId);
+    }
+    #endregion Metodos ciclo de vida
+}
