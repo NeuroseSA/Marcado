@@ -1,0 +1,21 @@
+# Build
+bin/
+obj/
+out/
+
+# User-specific
+.vs/
+*.user
+*.suo
+
+# EF
+Migrations/
+
+# SQLite local file
+*.db
+
+# Logs
+*.log
+
+# Configs sensíveis
+appsettings.Development.json
