@@ -13,6 +13,7 @@ body {
   border-radius: var(--radius-md);
   padding: var(--space-4);
   box-shadow: var(--shadow-sm);
+  max-height: fit-content;
 }
 
 .card-title {
@@ -35,7 +36,9 @@ label {
   color: var(--color-text);
 }
 
-.input, .textarea, .select {
+.input,
+.textarea,
+.select {
   padding: var(--space-2);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -92,7 +95,15 @@ label {
   color: var(--color-text-secondary);
 }
 
-.mt-2 { margin-top: var(--space-2); }
-.mt-3 { margin-top: var(--space-3); }
-.mb-2 { margin-bottom: var(--space-2); }
-.mb-3 { margin-bottom: var(--space-3); }
+.mt-2 {
+  margin-top: var(--space-2);
+}
+.mt-3 {
+  margin-top: var(--space-3);
+}
+.mb-2 {
+  margin-bottom: var(--space-2);
+}
+.mb-3 {
+  margin-bottom: var(--space-3);
+}

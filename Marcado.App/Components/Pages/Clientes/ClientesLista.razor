@@ -4,7 +4,7 @@
 @using Marcado.Core.Servicos
 @inject IClientesServico _clientesServico
 
-<link href="../../../wwwroot/css/clientes-lista.css" rel="stylesheet" />
+<link href="css/clientes-lista.css" rel="stylesheet" />
 
 <PageTitle>Clientes</PageTitle>
 
@@ -32,8 +32,17 @@
                         <td>@cliente.Telefone</td>
                         <td>@cliente.Observacao</td>
                         <td class="actions">
-                            <button class="btn btn-outline" @onclick="() => EditarCliente(cliente.Id)">Editar</button>
-                            <button class="btn btn-secondary" @onclick="() => ExcluirCliente(cliente.Id)">Excluir</button>
+                            <!-- Botão de Editar -->
+                            <button class="btn btn-outline btn-edit desktop-only"
+                                @onclick="() => EditarCliente(cliente.Id)">Editar</button>
+                            <button class="btn btn-icon btn-edit mobile-only" title="Editar"
+                                @onclick="() => EditarCliente(cliente.Id)">✏️</button>
+
+                            <!-- Botão de Excluir -->
+                            <button class="btn btn-secondary btn-delete desktop-only"
+                                @onclick="() => ExcluirCliente(cliente.Id)">Excluir</button>
+                            <button class="btn btn-icon btn-delete mobile-only" title="Excluir"
+                                @onclick="() => ExcluirCliente(cliente.Id)">🗑️</button>
                         </td>
                     </tr>
                 }
