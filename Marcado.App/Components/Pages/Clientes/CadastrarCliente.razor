@@ -1,0 +1,93 @@
+@page "/clientes/novo"
+@page "/clientes/editar"
+
+@using Marcado.Core.Entidades
+@using Marcado.Core.Servicos
+@using Marcado.App.Servicos
+@using System.Security.AccessControl
+@inject IClientesServico _clientesServico
+@inject EstadoNavegacaoServico _estadoNavegacao
+
+<link href="css/cadastro.css" rel="stylesheet" />
+
+<PageTitle>@(isModoEdicao ? "Editar Cliente" : "Novo Cliente")</PageTitle>
+
+<div class="page-container">
+    <div class="card">
+        <h2 class="card-title">@(isModoEdicao ? "Editar Cliente" : "Cadastrar Cliente")</h2>
+        <EditForm Model="@novoCliente" OnValidSubmit="SalvarCliente">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="form-group">
+                <label for="nome">Nome</label>
+                <InputText id="nome" class="input" @bind-Value="novoCliente.Nome" />
+                <ValidationMessage For="@(() => novoCliente.Nome)" />
+            </div>
+
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <InputText id="email" class="input" @bind-Value="novoCliente.Email" />
+            </div>
+
+            <div class="form-group">
+                <label for="telefone">Telefone</label>
+                <InputText id="telefone" class="input" @bind-Value="novoCliente.Telefone" />
+            </div>
+
+            <div class="form-group">
+                <label for="Observacao">Observações</label>
+                <InputTextArea id="Observacao" class="textarea" @bind-Value="novoCliente.Observacao" />
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">@(isModoEdicao ? "Atualizar Cliente" : "Adicionar Cliente")</button>
+                <button type="button" class="btn btn-secondary" @onclick="Cancelar">Cancelar</button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private Cliente novoCliente = new();
+    private int? ClienteId { get; set; }
+    private bool isModoEdicao => ClienteId.HasValue;
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Busca o ID do cliente no serviço de estado
+        ClienteId = _estadoNavegacao.ObterClienteParaEdicao();
+        
+        if (ClienteId.HasValue)
+        {
+            var clienteExistente = await _clientesServico.ObterClientePorIdAsync(ClienteId.Value);
+            if (clienteExistente != null)
+            {
+                novoCliente = clienteExistente;
+            }
+            else
+            {
+                // Se cliente não existe, redireciona para lista
+                Navigation.NavigateTo("/clientes");
+            }
+        }
+    }
+    
+    private async Task SalvarCliente()
+    {
+        if (isModoEdicao)
+        {
+            await _clientesServico.AtualizarClienteAsync(novoCliente);
+            Navigation.NavigateTo("/clientes");
+            return;
+        }
+        await _clientesServico.AdicionarClienteAsync(novoCliente);
+        Navigation.NavigateTo("/clientes");
+    }
+
+    private void Cancelar()
+    {
+        Navigation.NavigateTo("/clientes");
+    }
+}

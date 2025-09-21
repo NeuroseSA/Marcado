@@ -1,23 +1,80 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
-
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+<div class="app-layout">
+    <!-- HEADER -->
+    <header class="app-header">
+        <div class="container">
+            <div class="header-left">
+                <span class="logo">Marcado</span>
+                <button class="hamburger-menu mobile-only" onclick="toggleMobileMenu()">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <nav class="nav-links desktop-only">
+                    <a href="/clientes" class="nav-link">Clientes</a>
+                    <a href="/agenda" class="nav-link">Agenda</a>
+                    <a href="/config" class="nav-link">Configurações</a>
+                </nav>
+            </div>
+            <div class="header-right">
+                <a href="/clientes/novo" class="btn btn-primary desktop-only">+ Novo Cliente</a>
+                <a href="/clientes/novo" class="btn btn-primary mobile-only">+</a>
+            </div>
         </div>
+        <!-- Menu Mobile -->
+        <div class="mobile-nav" id="mobileNav">
+            <nav class="mobile-nav-links">
+                <a href="/clientes" class="mobile-nav-link">Clientes</a>
+                <a href="/agenda" class="mobile-nav-link">Agenda</a>
+                <a href="/config" class="mobile-nav-link">Configurações</a>
+            </nav>
+        </div>
+    </header>
 
-        <article class="content px-4">
+    <!-- CONTEÚDO -->
+    <main class="app-content">
+        <div class="container">
             @Body
-        </article>
+        </div>
     </main>
 </div>
 
-<div id="blazor-error-ui">
-    An unhandled error has occurred.
-    <a href="" class="reload">Reload</a>
-    <a class="dismiss">🗙</a>
-</div>
+@code {
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Task.Run(() => { });
+        }
+    }
+}
+
+<script>
+function toggleMobileMenu() {
+    const mobileNav = document.getElementById('mobileNav');
+    const isOpen = mobileNav.classList.contains('open');
+    
+    if (isOpen) {
+        mobileNav.classList.remove('open');
+        document.querySelector('.hamburger-menu').classList.remove('active');
+    } else {
+        mobileNav.classList.add('open');
+        document.querySelector('.hamburger-menu').classList.add('active');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Fechar menu ao clicar em um link
+    const mobileLinks = document.querySelectorAll('.mobile-nav-link');
+    mobileLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            const mobileNav = document.getElementById('mobileNav');
+            mobileNav.classList.remove('open');
+            document.querySelector('.hamburger-menu').classList.remove('active');
+        });
+    });
+});
+</script>

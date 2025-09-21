@@ -1,10 +1,19 @@
 using Marcado.App.Components;
+using Marcado.App.Servicos;
+using Marcado.Core.Servicos;
+using Marcado.Data;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddMarcadoData(builder.Configuration);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+#region Serviços
+builder.Services.AddScoped<IClientesServico, ClientesServico>();
+builder.Services.AddScoped<EstadoNavegacaoServico>();
+#endregion Serviços
 
 var app = builder.Build();
 

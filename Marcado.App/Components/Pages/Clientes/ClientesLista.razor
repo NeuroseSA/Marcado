@@ -1,0 +1,86 @@
+@page "/"
+@page "/clientes"
+
+@using Marcado.Core.Entidades
+@using Marcado.Core.Servicos
+@using Marcado.App.Servicos
+@inject IClientesServico _clientesServico
+@inject EstadoNavegacaoServico _estadoNavegacao
+
+<link href="css/clientes-lista.css" rel="stylesheet" />
+
+<PageTitle>Clientes</PageTitle>
+
+<div class="page-container">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Meus Clientes</h2>
+        </div>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>E-mail</th>
+                    <th>Telefone</th>
+                    <th style="width: 150px;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var cliente in clientes)
+                {
+                    <tr>
+                        <td>@cliente.Nome</td>
+                        <td>@cliente.Email</td>
+                        <td>@cliente.Telefone</td>
+                        <td class="actions">
+                            <!-- Botão de Editar -->
+                            <button class="btn btn-outline btn-edit desktop-only"
+                                @onclick="() => EditarCliente(cliente.Id)">Editar</button>
+                            <button class="btn btn-icon btn-edit mobile-only" title="Editar"
+                                @onclick="() => EditarCliente(cliente.Id)">✏️</button>
+
+                            <!-- Botão de Excluir -->
+                            <button class="btn btn-secondary btn-delete desktop-only"
+                                @onclick="() => ExcluirCliente(cliente.Id)">Excluir</button>
+                            <button class="btn btn-icon btn-delete mobile-only" title="Excluir"
+                                @onclick="() => ExcluirCliente(cliente.Id)">🗑️</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    int usuarioId = 1; // mock até ter auth
+    string filtro = "";
+    List<Marcado.Core.Entidades.Cliente> clientes = new();
+    Marcado.Core.Entidades.Cliente clienteEdicao = new();
+    bool exibirForm = false;
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+
+
+    #region Metodos ciclo de vida
+    protected override async Task OnInitializedAsync() =>
+    clientes = await _clientesServico.ObterClientesAsync(usuarioId);
+
+    private void NovoCliente()
+    {
+        Navigation.NavigateTo("/clientes/novo");
+    }
+
+    private void EditarCliente(int id)
+    {
+        _estadoNavegacao.DefinirClienteParaEdicao(id);
+        Navigation.NavigateTo("/clientes/editar");
+    }
+
+    private async Task ExcluirCliente(int id)
+    {
+        await _clientesServico.DeletarClienteAsync(id);
+        clientes = await _clientesServico.ObterClientesAsync(usuarioId);
+    }
+    #endregion Metodos ciclo de vida
+}
