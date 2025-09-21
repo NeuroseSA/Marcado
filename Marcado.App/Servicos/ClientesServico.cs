@@ -33,6 +33,7 @@ public class ClientesServico(MarcadoDbContext db) : IClientesServico
     {
         var clienteExistente = await _db.Clientes.FirstOrDefaultAsync(c => c.Id == cliente.Id) ?? throw new Exception("Cliente não encontrado.");
         clienteExistente.Nome = cliente.Nome;
+        clienteExistente.Email = cliente.Email;
         clienteExistente.Telefone = cliente.Telefone;
         clienteExistente.Observacao = cliente.Observacao;
 

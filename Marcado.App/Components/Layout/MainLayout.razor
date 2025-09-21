@@ -3,19 +3,27 @@
 <div class="app-layout">
     <!-- HEADER -->
     <header class="app-header">
-        <div class="header-left">
-            <span class="logo">Marcado</span>
-            <nav class="nav-links">
-                <a href="/clientes" class="nav-link">Clientes</a>
-                <a href="/agenda" class="nav-link">Agenda</a>
-                <a href="/config" class="nav-link">Configurações</a>
-            </nav>
+        <div class="container">
+            <div class="header-left">
+                <nav class="nav-links">
+                    <span class="logo">Marcado</span>
+                    <a href="/clientes" class="nav-link">Clientes</a>
+                    <a href="/agenda" class="nav-link">Agenda</a>
+                    <a href="/config" class="nav-link">Configurações</a>
+                </nav>
+            </div>
+            <div class="header-right">
+                <a href="/clientes/novo" class="btn btn-primary desktop-only">+ Novo Cliente</a>
+                <a href="/clientes/novo" class="btn btn-primary mobile-only">+</a>
+            </div>
         </div>
     </header>
 
     <!-- CONTEÚDO -->
     <main class="app-content">
-        @Body
+        <div class="container">
+            @Body
+        </div>
     </main>
 </div>
 

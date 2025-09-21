@@ -12,15 +12,14 @@
     <div class="card">
         <div class="card-header">
             <h2 class="card-title">Meus Clientes</h2>
-            <button class="btn btn-primary" @onclick="NovoCliente">+ Novo Cliente</button>
         </div>
 
         <table class="table">
             <thead>
                 <tr>
                     <th>Nome</th>
+                    <th>E-mail</th>
                     <th>Telefone</th>
-                    <th>Observação</th>
                     <th style="width: 150px;">Ações</th>
                 </tr>
             </thead>
@@ -29,8 +28,8 @@
                 {
                     <tr>
                         <td>@cliente.Nome</td>
+                        <td>@cliente.Email</td>
                         <td>@cliente.Telefone</td>
-                        <td>@cliente.Observacao</td>
                         <td class="actions">
                             <!-- Botão de Editar -->
                             <button class="btn btn-outline btn-edit desktop-only"

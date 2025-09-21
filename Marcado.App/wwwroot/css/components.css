@@ -107,3 +107,10 @@ label {
 .mb-3 {
   margin-bottom: var(--space-3);
 }
+.mobile-only {
+  display: none;
+}
+
+.desktop-only {
+  display: inline;
+}
