@@ -1,0 +1,70 @@
+/* Header com filtros */
+.card-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+}
+.card-header .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    align-items: center;
+}
+
+.input-date, .select {
+    padding: var(--space-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-family);
+}
+
+/* Grade diária (blocos por hora) */
+.agenda-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-2);
+}
+
+.agenda-slot {
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: #fff;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.agenda-slot:hover { background: var(--color-bg); }
+.agenda-slot .hora { font-weight: 600; margin-bottom: var(--space-1); }
+.agenda-slot .descricao { font-size: 0.9rem; color: var(--color-text-secondary); }
+
+.agenda-slot.livre { border-left: 4px solid var(--color-success); }
+.agenda-slot.agendado { border-left: 4px solid var(--color-primary); }
+.agenda-slot.fechado { border-left: 4px solid var(--color-error); background: #f3f4f6; }
+
+/* Grade mensal */
+.agenda-mensal {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: var(--space-2);
+}
+.agenda-mensal .dia {
+    background: #fff;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-2);
+    text-align: center;
+    cursor: pointer;
+}
+.agenda-mensal .dia:hover { background: var(--color-bg); }
+.agenda-mensal .dia.livre { border-left: 4px solid var(--color-success); }
+.agenda-mensal .dia.fechado { border-left: 4px solid var(--color-error); background: #f3f4f6; }
+.agenda-mensal .numero { font-weight: 600; display: block; }
+.agenda-mensal .status { font-size: 0.8rem; color: var(--color-text-secondary); }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
