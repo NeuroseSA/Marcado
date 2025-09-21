@@ -12,6 +12,7 @@ builder.Services.AddRazorComponents()
 
 #region Serviços
 builder.Services.AddScoped<IClientesServico, ClientesServico>();
+builder.Services.AddScoped<EstadoNavegacaoServico>();
 #endregion Serviços
 
 var app = builder.Build();

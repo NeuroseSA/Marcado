@@ -1,8 +1,11 @@
+@page "/"
 @page "/clientes"
 
 @using Marcado.Core.Entidades
 @using Marcado.Core.Servicos
+@using Marcado.App.Servicos
 @inject IClientesServico _clientesServico
+@inject EstadoNavegacaoServico _estadoNavegacao
 
 <link href="css/clientes-lista.css" rel="stylesheet" />
 
@@ -70,7 +73,8 @@
 
     private void EditarCliente(int id)
     {
-        Navigation.NavigateTo($"/clientes/editar/{id}");
+        _estadoNavegacao.DefinirClienteParaEdicao(id);
+        Navigation.NavigateTo("/clientes/editar");
     }
 
     private async Task ExcluirCliente(int id)
