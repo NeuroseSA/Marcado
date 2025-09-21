@@ -114,3 +114,13 @@ label {
 .desktop-only {
   display: inline;
 }
+
+@media (max-width: 768px) {
+  .mobile-only {
+    display: inline-flex;
+  }
+
+  .desktop-only {
+    display: none;
+  }
+}
