@@ -56,7 +56,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Busca o ID do cliente no serviço de estado
         ClienteId = _estadoNavegacao.ObterClienteParaEdicao();
         
         if (ClienteId.HasValue)
@@ -68,7 +67,6 @@
             }
             else
             {
-                // Se cliente não existe, redireciona para lista
                 Navigation.NavigateTo("/clientes");
             }
         }

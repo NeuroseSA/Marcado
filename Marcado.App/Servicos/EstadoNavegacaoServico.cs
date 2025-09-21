@@ -13,7 +13,6 @@ public class EstadoNavegacaoServico
     {
         if (_estadoTemporario.TryGetValue("ClienteIdEdicao", out var clienteId))
         {
-            // Remove o estado após uso para evitar reutilização acidental
             _estadoTemporario.Remove("ClienteIdEdicao");
             return (int)clienteId;
         }

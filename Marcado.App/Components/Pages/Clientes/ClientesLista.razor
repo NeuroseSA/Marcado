@@ -68,7 +68,7 @@
 </div>
 
 @code {
-    int usuarioId = 1; // mock até ter auth
+    int usuarioId = 1; // TODO: mock até ter auth
     string filtro = "";
     List<Marcado.Core.Entidades.Cliente> clientes = new();
     List<Marcado.Core.Entidades.Cliente> clientesFiltrados = new();
@@ -114,7 +114,7 @@
     {
         await _clientesServico.DeletarClienteAsync(id);
         clientes = await _clientesServico.ObterClientesAsync(usuarioId);
-        await FiltrarClientes(); // Reaplica o filtro após exclusão
+        await FiltrarClientes();
     }
     #endregion Metodos ciclo de vida
 }
