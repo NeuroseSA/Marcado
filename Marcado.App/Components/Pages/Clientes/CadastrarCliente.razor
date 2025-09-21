@@ -4,6 +4,7 @@
 @using Marcado.Core.Entidades
 @using Marcado.Core.Servicos
 @using Marcado.App.Servicos
+@using Marcado.App.Helpers
 @using System.Security.AccessControl
 @inject IClientesServico _clientesServico
 @inject EstadoNavegacaoServico _estadoNavegacao
@@ -32,7 +33,13 @@
 
             <div class="form-group">
                 <label for="telefone">Telefone</label>
-                <InputText id="telefone" class="input" @bind-Value="novoCliente.Telefone" />
+                <input id="telefone" 
+                       class="input" 
+                       @bind="telefoneFormatado" 
+                       @bind:event="oninput"
+                       @bind:after="AtualizarTelefone"
+                       placeholder="(11) 99999-9999"
+                       maxlength="15" />
             </div>
 
             <div class="form-group">
@@ -53,6 +60,9 @@
     private int? ClienteId { get; set; }
     private bool isModoEdicao => ClienteId.HasValue;
     [Inject] private NavigationManager Navigation { get; set; } = default!;
+    
+    // Propriedade para controlar a máscara do telefone
+    private string telefoneFormatado = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -64,12 +74,25 @@
             if (clienteExistente != null)
             {
                 novoCliente = clienteExistente;
+                // Formatar o telefone existente
+                telefoneFormatado = FormatacaoHelper.FormatarTelefone(novoCliente.Telefone);
             }
             else
             {
                 Navigation.NavigateTo("/clientes");
             }
         }
+    }
+    
+    private void AtualizarTelefone()
+    {
+        // Aplica a máscara enquanto o usuário digita
+        telefoneFormatado = FormatacaoHelper.AplicarMascaraTelefoneInput(telefoneFormatado);
+        
+        // Atualiza o valor limpo no modelo
+        novoCliente.Telefone = FormatacaoHelper.RemoverMascaraTelefone(telefoneFormatado);
+        
+        StateHasChanged();
     }
     
     private async Task SalvarCliente()

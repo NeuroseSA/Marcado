@@ -4,6 +4,7 @@
 @using Marcado.Core.Entidades
 @using Marcado.Core.Servicos
 @using Marcado.App.Servicos
+@using Marcado.App.Helpers
 @inject IClientesServico _clientesServico
 @inject EstadoNavegacaoServico _estadoNavegacao
 
@@ -46,7 +47,7 @@
                     <tr>
                         <td>@cliente.Nome</td>
                         <td>@cliente.Email</td>
-                        <td>@cliente.Telefone</td>
+                        <td>@FormatacaoHelper.FormatarTelefone(cliente.Telefone)</td>
                         <td class="actions">
                             <!-- Botão de Editar -->
                             <button class="btn btn-outline btn-edit desktop-only"
