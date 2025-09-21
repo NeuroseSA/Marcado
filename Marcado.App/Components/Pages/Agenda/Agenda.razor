@@ -1,5 +1,8 @@
 @page "/agenda"
 @using System.ComponentModel.DataAnnotations
+@using Marcado.Core.Entidades
+@using Marcado.Core.Servicos
+@inject IClientesServico _clientesServico
 
 <link href="css/agenda.css" rel="stylesheet" />
 
@@ -60,7 +63,41 @@
 
                 <div class="modal-field">
                     <label class="modal-label">Cliente *</label>
-                    <input type="text" @bind="novoAgendamento.Cliente" placeholder="Nome do cliente" class="modal-input" />
+                    <div class="autocomplete-container">
+                        <input type="text" 
+                               @bind="clienteBusca" 
+                               @bind:event="oninput"
+                               @bind:after="BuscarClientes"
+                               @onfocus="MostrarListaClientes"
+                               @onblur="OcultarListaClientes"
+                               placeholder="Digite o nome do cliente" 
+                               class="modal-input autocomplete-input" 
+                               autocomplete="off" />
+                        
+                        @if (mostrarListaClientes && clientes.Any())
+                        {
+                            <div class="autocomplete-dropdown">
+                                @foreach (var cliente in clientes.Take(8))
+                                {
+                                    <div class="autocomplete-item" 
+                                         @onmousedown="() => SelecionarCliente(cliente)"
+                                         @onmousedown:preventDefault="true">
+                                        <div class="cliente-nome">@cliente.Nome</div>
+                                        <div class="cliente-info">@cliente.Telefone - @cliente.Email</div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        
+                        @if (mostrarListaClientes && !clientes.Any() && !string.IsNullOrWhiteSpace(clienteBusca))
+                        {
+                            <div class="autocomplete-dropdown">
+                                <div class="autocomplete-item no-results">
+                                    Nenhum cliente encontrado
+                                </div>
+                            </div>
+                        }
+                    </div>
                 </div>
 
                 <div class="modal-row">
@@ -106,6 +143,12 @@
     private string ModoVisualizacao = "diaria";
     private bool mostrarModal = false;
     private NovoAgendamentoModel novoAgendamento = new NovoAgendamentoModel();
+    private List<Cliente> clientes = new List<Cliente>();
+    
+    // Propriedades para o autocomplete
+    private string clienteBusca = string.Empty;
+    private bool mostrarListaClientes = false;
+    private Cliente? clienteSelecionado = null;
 
 
 
@@ -198,7 +241,66 @@
             Data = DataSelecionada,
             Hora = 8
         };
+        
+        // Limpar campos do autocomplete
+        clienteBusca = string.Empty;
+        clienteSelecionado = null;
+        clientes.Clear();
+        mostrarListaClientes = false;
+        
         mostrarModal = true;
+        StateHasChanged();
+    }
+
+    private async Task BuscarClientes()
+    {
+        if (string.IsNullOrWhiteSpace(clienteBusca))
+        {
+            clientes.Clear();
+            mostrarListaClientes = false;
+            clienteSelecionado = null;
+            novoAgendamento.Cliente = string.Empty;
+        }
+        else
+        {
+            try
+            {
+                clientes = await _clientesServico.BuscarClientesPorFiltroAsync(1, clienteBusca);
+                mostrarListaClientes = true;
+            }
+            catch
+            {
+                // Log do erro se necessário
+                clientes.Clear();
+                mostrarListaClientes = false;
+            }
+        }
+        StateHasChanged();
+    }
+
+    private void MostrarListaClientes()
+    {
+        if (!string.IsNullOrWhiteSpace(clienteBusca))
+        {
+            mostrarListaClientes = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OcultarListaClientes()
+    {
+        // Delay para permitir que o clique no item funcione antes de ocultar
+        await Task.Delay(200);
+        mostrarListaClientes = false;
+        StateHasChanged();
+    }
+
+    private void SelecionarCliente(Cliente cliente)
+    {
+        clienteSelecionado = cliente;
+        clienteBusca = cliente.Nome;
+        novoAgendamento.Cliente = cliente.Nome;
+        mostrarListaClientes = false;
         StateHasChanged();
     }
 
@@ -211,6 +313,13 @@
                 Data = DataSelecionada,
                 Hora = slot.Hora
             };
+            
+            // Limpar campos do autocomplete
+            clienteBusca = string.Empty;
+            clienteSelecionado = null;
+            clientes.Clear();
+            mostrarListaClientes = false;
+            
             mostrarModal = true;
             StateHasChanged();
         }

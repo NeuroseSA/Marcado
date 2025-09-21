@@ -9,4 +9,5 @@ public interface IClientesServico
     Task<Cliente?> ObterClientePorIdAsync(int clienteId);
     Task AtualizarClienteAsync(Cliente cliente);
     Task DeletarClienteAsync(int clienteId);
+    Task<List<Cliente>> BuscarClientesPorFiltroAsync(int usuarioId, string nome = "", string telefone = "", string email = "");
 }

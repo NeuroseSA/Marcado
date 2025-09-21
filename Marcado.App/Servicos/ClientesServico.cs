@@ -46,4 +46,20 @@ public class ClientesServico(MarcadoDbContext db) : IClientesServico
         _db.Clientes.Remove(cliente);
         await _db.SaveChangesAsync();
     }
+
+    public async Task<List<Cliente>> BuscarClientesPorFiltroAsync(int usuarioId, string nome = "", string telefone = "", string email = "")
+    {
+        var query = _db.Clientes.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(nome))
+            query = query.Where(c => c.Nome.Contains(nome));
+
+        if (!string.IsNullOrWhiteSpace(telefone))
+            query = query.Where(c => c.Telefone.Contains(telefone));
+
+        if (!string.IsNullOrWhiteSpace(email))
+            query = query.Where(c => c.Email.Contains(email));
+
+        return await query.OrderBy(c => c.Nome).ToListAsync();
+    }
 }
