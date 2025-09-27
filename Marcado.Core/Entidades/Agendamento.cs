@@ -4,7 +4,7 @@ public class Agendamento
 {
     public int Id { get; set; }
     public int UsuarioId { get; set; }
-    public int ClienteId { get; set; }
+    public int? ClienteId { get; set; }
     public DateTime Data { get; set; }
     public int Hora { get; set; }
     public string Servico { get; set; } = "";

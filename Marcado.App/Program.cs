@@ -1,4 +1,5 @@
 using Marcado.App.Components;
+using Marcado.App.Services;
 using Marcado.Core.Servicos;
 using Marcado.Core.Servicos.Interfaces;
 using Marcado.Data;
@@ -14,6 +15,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddScoped<IClientesServico, ClientesServico>();
 builder.Services.AddScoped<IAgendamentoServico, AgendamentoServico>();
 builder.Services.AddScoped<EstadoNavegacaoServico>();
+builder.Services.AddScoped<FeedbackService>();
 #endregion Serviços
 
 var app = builder.Build();
