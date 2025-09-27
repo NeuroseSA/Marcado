@@ -25,7 +25,7 @@ public class AgendamentoServico(MarcadoDbContext db) : IAgendamentoServico
     {
         return await _db.Agendamentos
             .Include(a => a.Cliente)
-            // .Where(a => a.UsuarioId == usuarioId && (data == null || a.Hora == data.Value.Date))
+            .Where(a => a.UsuarioId == usuarioId && (data == null || a.Data == data.Value.Date))
             .ToListAsync();
     }
 

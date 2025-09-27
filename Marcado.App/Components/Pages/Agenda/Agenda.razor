@@ -224,10 +224,11 @@
             ? DataSelecionada.AddMonths(-1)
             : DataSelecionada.AddDays(-1);
 
+        await CarregarSlots();
+
         if (ModoVisualizacao == "diaria")
-        {
             await CarregarSlots();
-        }
+        
         StateHasChanged();
     }
 
@@ -246,8 +247,26 @@
 
     private async Task FecharDia()
     {
-        // Verificar se há agendamentos para o dia
         var agendamentosAtivos = agendaSlots.Where(x => x.Status == "Agendado").ToList();
+
+        if (!DiasFechados.Contains(DataSelecionada.Date))
+            DiasFechados.Add(DataSelecionada.Date);
+
+        foreach (var slot in agendaSlots)
+        {
+            if (slot.Status != "Agendado")
+            {
+                await _agendamentoServico.AgendarServicoAsync(new Agendamento
+                {
+                    ClienteId = null,
+                    UsuarioId = 1, // TODO: substituir pelo ID do usuário logado
+                    Data = DataSelecionada,
+                    Hora = slot.Hora,
+                    Servico = "Agenda Fechada",
+                    Status = "Fechado"
+                });
+            }
+        }
 
         if (agendamentosAtivos.Any())
         {
@@ -261,43 +280,14 @@
                 mensagem,
                 8000 // 8 segundos para dar tempo de ler
             );
-
-            foreach (var slot in agendaSlots)
-            {
-                if (slot.Status != "Agendado")
-                {
-                    slot.Status = "Fechado";
-                    slot.Descricao = "Agenda Fechada";
-
-                    await _agendamentoServico.AgendarServicoAsync(new Agendamento
-                    {
-                        ClienteId = null,
-                        UsuarioId = 1, // TODO: substituir pelo ID do usuário logado
-                        Data = DataSelecionada,
-                        Hora = slot.Hora,
-                        Servico = "Agenda Fechada",
-                        Status = "Fechado"
-                    });
-                }
-            }
-            
-            return;
         }
-
-        // Se não há agendamentos, fechar o dia normalmente
-        if (!DiasFechados.Contains(DataSelecionada.Date))
-            DiasFechados.Add(DataSelecionada.Date);
-
-        foreach (var slot in agendaSlots)
+        else
         {
-            slot.Status = "Fechado";
-            slot.Descricao = "Agenda Fechada";
+            _feedbackService.MostrarSucesso(
+                "Dia Fechado!",
+                $"A agenda do dia {DataSelecionada.ToString("dd/MM/yyyy")} foi fechada com sucesso."
+            );
         }
-        
-        _feedbackService.MostrarSucesso(
-            "Dia Fechado!",
-            $"A agenda do dia {DataSelecionada.ToString("dd/MM/yyyy")} foi fechada com sucesso."
-        );
 
         await CarregarSlots();
         StateHasChanged();
