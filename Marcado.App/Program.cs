@@ -12,10 +12,18 @@ builder.Services.AddRazorComponents()
 
 #region Serviços
 builder.Services.AddScoped<IClientesServico, ClientesServico>();
+builder.Services.AddScoped<IAgendamentoServico, AgendamentoServico>();
 builder.Services.AddScoped<EstadoNavegacaoServico>();
 #endregion Serviços
 
 var app = builder.Build();
+
+// Executar seed de dados iniciais
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<MarcadoDbContext>();
+    DataSetup.SeedData(context);
+}
 
 if (!app.Environment.IsDevelopment())
 {

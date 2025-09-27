@@ -18,12 +18,8 @@
             <h2 class="card-title">Meus Clientes</h2>
             <div class="header-actions">
                 <div class="search-container">
-                    <input type="text" 
-                           @bind="filtro" 
-                           @bind:event="oninput"
-                           @onkeyup="FiltrarClientes"
-                           placeholder="Pesquisar por nome..." 
-                           class="form-control search-input" />
+                    <input type="text" @bind="filtro" @bind:event="oninput" @onkeyup="FiltrarClientes"
+                        placeholder="Pesquisar por nome..." class="form-control search-input" />
                 </div>
                 <button class="btn btn-primary" @onclick="NovoCliente">
                     <span class="desktop-only">Novo Cliente</span>
@@ -85,7 +81,7 @@
         clientesFiltrados = clientes;
     }
 
-    private async Task FiltrarClientes()
+    private void FiltrarClientes()
     {
         if (string.IsNullOrWhiteSpace(filtro))
         {
@@ -94,8 +90,8 @@
         else
         {
             clientesFiltrados = clientes
-                .Where(c => c.Nome.Contains(filtro, StringComparison.OrdinalIgnoreCase))
-                .ToList();
+            .Where(c => c.Nome.Contains(filtro, StringComparison.OrdinalIgnoreCase))
+            .ToList();
         }
         StateHasChanged();
     }
@@ -115,7 +111,7 @@
     {
         await _clientesServico.DeletarClienteAsync(id);
         clientes = await _clientesServico.ObterClientesAsync(usuarioId);
-        await FiltrarClientes();
+        FiltrarClientes();
     }
     #endregion Metodos ciclo de vida
 }

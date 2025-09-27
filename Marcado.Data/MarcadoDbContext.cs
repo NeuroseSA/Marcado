@@ -5,7 +5,7 @@ namespace Marcado.Data;
 
 public class MarcadoDbContext : DbContext
 {
-    public MarcadoDbContext(DbContextOptions<MarcadoDbContext> options) : base(options) {}
+    public MarcadoDbContext(DbContextOptions<MarcadoDbContext> options) : base(options) { }
 
     public DbSet<Usuario> Usuarios => Set<Usuario>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
@@ -20,9 +20,15 @@ public class MarcadoDbContext : DbContext
             .HasIndex(x => new { x.UsuarioId, x.Nome });
 
         b.Entity<Agendamento>()
-            .HasOne<Cliente>()
+            .HasOne(a => a.Cliente)
             .WithMany()
-            .HasForeignKey(x => x.ClienteId)
+            .HasForeignKey(a => a.ClienteId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        b.Entity<Agendamento>()
+            .HasOne(a => a.Usuario)
+            .WithMany()
+            .HasForeignKey(a => a.UsuarioId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
