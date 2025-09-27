@@ -1,0 +1,67 @@
+@using Marcado.App.Services
+@using Marcado.App.Components.Shared
+@inject FeedbackService FeedbackService
+@implements IDisposable
+
+<link href="css/feedback-toast.css" rel="stylesheet" />
+
+@foreach (var feedback in feedbacks)
+{
+    <FeedbackToast IsVisible="true"
+                   Titulo="@feedback.Titulo"
+                   Mensagem="@feedback.Mensagem"
+                   TipoFeedback="@feedback.Tipo"
+                   DuracaoMs="@feedback.Duracao"
+                   OnFechar="@(() => RemoverFeedback(feedback.Id))" />
+}
+
+@code {
+    private List<FeedbackModel> feedbacks = new();
+    private int proximoId = 1;
+
+    protected override void OnInitialized()
+    {
+        FeedbackService.OnMostrarFeedback += AdicionarFeedback;
+    }
+
+    private void AdicionarFeedback(string titulo, string mensagem, TipoFeedback tipo, int duracao)
+    {
+        var feedback = new FeedbackModel
+        {
+            Id = proximoId++,
+            Titulo = titulo,
+            Mensagem = mensagem,
+            Tipo = tipo,
+            Duracao = duracao
+        };
+
+        feedbacks.Add(feedback);
+        StateHasChanged();
+
+        // Auto-remover após a duração especificada
+        _ = Task.Delay(duracao).ContinueWith(_ => RemoverFeedback(feedback.Id));
+    }
+
+    private void RemoverFeedback(int id)
+    {
+        InvokeAsync(() =>
+        {
+            feedbacks.RemoveAll(f => f.Id == id);
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        FeedbackService.OnMostrarFeedback -= AdicionarFeedback;
+    }
+
+    private class FeedbackModel
+    {
+        public int Id { get; set; }
+        public string Titulo { get; set; } = "";
+        public string Mensagem { get; set; } = "";
+        public TipoFeedback Tipo { get; set; }
+        public int Duracao { get; set; }
+    }
+}

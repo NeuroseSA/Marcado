@@ -4,10 +4,12 @@
 @using Marcado.Core.Servicos
 @using Marcado.Core.Servicos.Interfaces
 @using Marcado.App.Helpers
+@using Marcado.App.Services
 @using System.Threading.Tasks
 @using System.Security.AccessControl
 @inject IClientesServico _clientesServico
 @inject IAgendamentoServico _agendamentoServico
+@inject FeedbackService _feedbackService
 
 <link href="css/agenda.css" rel="stylesheet" />
 
@@ -25,6 +27,7 @@
                     <option value="diaria">Visão Diária</option>
                     <option value="mensal">Visão Mensal</option>
                 </select>
+                <button class="btn btn-success" @onclick="AbrirDia">Abrir Dia</button>
                 <button class="btn btn-secondary" @onclick="FecharDia">Fechar Dia</button>
                 <button class="btn btn-primary" @onclick="NovoAgendamento">+ Novo Agendamento</button>
             </div>
@@ -197,7 +200,7 @@
             if (slot != null)
             {
                 slot.Status = agendamento.Status;
-                slot.Descricao = $"{agendamento.Cliente?.Nome} - {agendamento.Servico}";
+                slot.Descricao = agendamento.Cliente?.Nome != null ? $"{agendamento.Cliente?.Nome} - {agendamento.Servico}" : agendamento.Servico;
                 slot.Cliente = agendamento.Cliente;
                 slot.AgendamentoId = agendamento.Id;
             }
@@ -241,8 +244,47 @@
         StateHasChanged();
     }
 
-    private void FecharDia()
+    private async Task FecharDia()
     {
+        // Verificar se há agendamentos para o dia
+        var agendamentosAtivos = agendaSlots.Where(x => x.Status == "Agendado").ToList();
+
+        if (agendamentosAtivos.Any())
+        {
+            var quantidadeAgendamentos = agendamentosAtivos.Count;
+            var mensagem = quantidadeAgendamentos == 1 
+                ? "Existe 1 agendamento ativo para este dia. O restante a agenda foi fechada!"
+                : $"Existem {quantidadeAgendamentos} agendamentos ativos para este dia. O restante a agenda foi fechada!";
+
+            _feedbackService.MostrarAlerta(
+                "Atenção!", 
+                mensagem,
+                8000 // 8 segundos para dar tempo de ler
+            );
+
+            foreach (var slot in agendaSlots)
+            {
+                if (slot.Status != "Agendado")
+                {
+                    slot.Status = "Fechado";
+                    slot.Descricao = "Agenda Fechada";
+
+                    await _agendamentoServico.AgendarServicoAsync(new Agendamento
+                    {
+                        ClienteId = null,
+                        UsuarioId = 1, // TODO: substituir pelo ID do usuário logado
+                        Data = DataSelecionada,
+                        Hora = slot.Hora,
+                        Servico = "Agenda Fechada",
+                        Status = "Fechado"
+                    });
+                }
+            }
+            
+            return;
+        }
+
+        // Se não há agendamentos, fechar o dia normalmente
         if (!DiasFechados.Contains(DataSelecionada.Date))
             DiasFechados.Add(DataSelecionada.Date);
 
@@ -251,9 +293,33 @@
             slot.Status = "Fechado";
             slot.Descricao = "Agenda Fechada";
         }
+        
+        _feedbackService.MostrarSucesso(
+            "Dia Fechado!",
+            $"A agenda do dia {DataSelecionada.ToString("dd/MM/yyyy")} foi fechada com sucesso."
+        );
+
+        await CarregarSlots();
         StateHasChanged();
     }
 
+    private async Task AbrirDia()
+    {
+        if (DiasFechados.Contains(DataSelecionada.Date))
+            DiasFechados.Remove(DataSelecionada.Date);
+
+        foreach (var slot in agendaSlots.Where(x => x.Status == "Fechado" && x.AgendamentoId.HasValue))
+        {
+            await _agendamentoServico.CancelarAgendamentoAsync(slot.AgendamentoId.Value);
+        }
+
+        _feedbackService.MostrarSucesso(
+            "Dia Aberto!",
+            $"A agenda do dia {DataSelecionada.ToString("dd/MM/yyyy")} foi reaberta com sucesso."
+        );
+        await CarregarSlots();
+        StateHasChanged();
+    }
     private async Task SelecionarDia(DateTime data)
     {
         DataSelecionada = data;
@@ -396,7 +462,10 @@
         // Validação simples
         if (string.IsNullOrWhiteSpace(novoAgendamento.Cliente) || clienteSelecionado == null)
         {
-            // Aqui você poderia adicionar uma mensagem de erro
+            _feedbackService.MostrarErro(
+                "Erro de Validação",
+                "Por favor, selecione um cliente antes de salvar o agendamento."
+            );
             return;
         }
 
@@ -433,6 +502,22 @@
             
             // Recarregar os slots para refletir as mudanças
             await CarregarSlots();
+            
+            // Mostrar feedback de sucesso
+            if (modoEdicao)
+            {
+                _feedbackService.MostrarSucesso(
+                    "Agendamento Atualizado!",
+                    $"O agendamento de {clienteSelecionado.Nome} foi atualizado com sucesso."
+                );
+            }
+            else
+            {
+                _feedbackService.MostrarSucesso(
+                    "Agendamento Criado!",
+                    $"Agendamento para {clienteSelecionado.Nome} criado com sucesso."
+                );
+            }
         }
 
         mostrarModal = false;
@@ -443,10 +528,26 @@
     {
         if (modoEdicao && novoAgendamento.Id.HasValue)
         {
-            await _agendamentoServico.CancelarAgendamentoAsync(novoAgendamento.Id.Value);
-            await CarregarSlots();
-            mostrarModal = false;
-            StateHasChanged();
+            try
+            {
+                await _agendamentoServico.CancelarAgendamentoAsync(novoAgendamento.Id.Value);
+                await CarregarSlots();
+                
+                _feedbackService.MostrarSucesso(
+                    "Agendamento Cancelado!",
+                    "O agendamento foi cancelado com sucesso."
+                );
+                
+                mostrarModal = false;
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                _feedbackService.MostrarErro(
+                    "Erro ao Cancelar",
+                    "Não foi possível cancelar o agendamento. Tente novamente."
+                );
+            }
         }
     }
 
