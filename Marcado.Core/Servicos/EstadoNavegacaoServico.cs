@@ -1,4 +1,4 @@
-namespace Marcado.App.Servicos;
+namespace Marcado.Core.Servicos;
 
 public class EstadoNavegacaoServico
 {

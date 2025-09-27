@@ -1,7 +1,7 @@
 @page "/agenda"
 @using System.ComponentModel.DataAnnotations
 @using Marcado.Core.Entidades
-@using Marcado.Core.Servicos
+@using Marcado.Core.Servicos.Interfaces
 @using Marcado.App.Helpers
 @inject IClientesServico _clientesServico
 
@@ -141,7 +141,7 @@
 
 @code {
     private DateTime DataSelecionada = DateTime.Today;
-    private string ModoVisualizacao = "diaria";
+    private string ModoVisualizacao = "diaria";//mensal, diaria
     private bool mostrarModal = false;
     private NovoAgendamentoModel novoAgendamento = new NovoAgendamentoModel();
     private List<Cliente> clientes = new List<Cliente>();

@@ -1,6 +1,6 @@
 using Marcado.Core.Entidades;
 
-namespace Marcado.Core.Servicos;
+namespace Marcado.Core.Servicos.Interfaces;
 
 public interface IClientesServico
 {

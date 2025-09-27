@@ -1,7 +1,8 @@
 using Marcado.App.Components;
-using Marcado.App.Servicos;
 using Marcado.Core.Servicos;
+using Marcado.Core.Servicos.Interfaces;
 using Marcado.Data;
+using Marcado.Data.Servicos;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMarcadoData(builder.Configuration);
