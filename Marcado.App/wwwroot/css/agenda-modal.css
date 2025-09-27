@@ -169,3 +169,19 @@
   font-size: 0.875rem;
   color: #6b7280;
 }
+
+.modal-btn-delete {
+  padding: 8px 16px;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  margin-right: auto;
+}
+
+.modal-btn-delete:hover {
+  background: #b91c1c;
+}
