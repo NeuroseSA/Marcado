@@ -1,0 +1,376 @@
+@page "/agenda"
+@using System.ComponentModel.DataAnnotations
+@using Marcado.Core.Entidades
+@using Marcado.Core.Servicos.Interfaces
+@using Marcado.App.Helpers
+@inject IClientesServico _clientesServico
+
+<link href="css/agenda.css" rel="stylesheet" />
+
+<PageTitle>Agenda</PageTitle>
+
+<div class="page-container">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Agenda</h2>
+            <div class="actions">
+                <button class="btn btn-outline" @onclick="DiaAnterior">← Anterior</button>
+                <InputDate @bind-Value="DataSelecionada" class="input-date" />
+                <button class="btn btn-outline" @onclick="ProximoDia">Próximo →</button>
+                <select class="select" @bind="ModoVisualizacao" @bind:after="OnModoVisualizacaoChanged">
+                    <option value="diaria">Visão Diária</option>
+                    <option value="mensal">Visão Mensal</option>
+                </select>
+                <button class="btn btn-secondary" @onclick="FecharDia">Fechar Dia</button>
+                <button class="btn btn-primary" @onclick="NovoAgendamento">+ Novo Agendamento</button>
+            </div>
+        </div>
+
+        @if (ModoVisualizacao == "diaria")
+        {
+            <div class="agenda-grid">
+                @foreach (var slot in agendaSlots)
+                {
+                    <div class="agenda-slot @(slot.Status.ToLower())" @onclick="() => CliqueSlot(slot)">
+                        <span class="hora">@slot.Hora:00</span>
+                        <span class="descricao">@slot.Descricao</span>
+                    </div>
+                }
+            </div>
+        }
+        else if (ModoVisualizacao == "mensal")
+        {
+            <div class="agenda-mensal">
+                @for (int dia = 1; dia <= DateTime.DaysInMonth(DataSelecionada.Year, DataSelecionada.Month); dia++)
+                {
+                    var data = new DateTime(DataSelecionada.Year, DataSelecionada.Month, dia);
+                    var status = DiasFechados.Contains(data.Date) ? "fechado" : "livre";
+                    <div class="dia @(status)" @onclick="() => SelecionarDia(data)">
+                        <span class="numero">@dia</span>
+                        <span class="status">@status</span>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @* Modal de agendamento *@
+    @if (mostrarModal)
+    {
+        <link href="css/agenda-modal.css" rel="stylesheet" />
+        <div class="modal-overlay" @onclick="FecharModal">
+            <div class="modal-content" @onclick:stopPropagation="true">
+                <h3 class="modal-title">Novo Agendamento</h3>
+
+                <div class="modal-field">
+                    <label class="modal-label">Cliente *</label>
+                    <div class="autocomplete-container">
+                        <input type="text" 
+                               @bind="clienteBusca" 
+                               @bind:event="oninput"
+                               @bind:after="BuscarClientes"
+                               @onfocus="MostrarListaClientes"
+                               @onblur="OcultarListaClientes"
+                               placeholder="Digite o nome do cliente" 
+                               class="modal-input autocomplete-input" 
+                               autocomplete="off" />
+                        
+                        @if (mostrarListaClientes && clientes.Any())
+                        {
+                            <div class="autocomplete-dropdown">
+                                @foreach (var cliente in clientes.Take(8))
+                                {
+                                    <div class="autocomplete-item" 
+                                         @onmousedown="() => SelecionarCliente(cliente)"
+                                         @onmousedown:preventDefault="true">
+                                        <div class="cliente-nome">@cliente.Nome</div>
+                                        <div class="cliente-info">@FormatacaoHelper.FormatarTelefone(cliente.Telefone) - @cliente.Email</div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        
+                        @if (mostrarListaClientes && !clientes.Any() && !string.IsNullOrWhiteSpace(clienteBusca))
+                        {
+                            <div class="autocomplete-dropdown">
+                                <div class="autocomplete-item no-results">
+                                    Nenhum cliente encontrado
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="modal-row">
+                    <div class="modal-col">
+                        <label class="modal-label">Data</label>
+                        <input type="date" @bind="novoAgendamento.Data" @bind:format="yyyy-MM-dd" class="modal-input" />
+                    </div>
+
+                    <div class="modal-col">
+                        <label class="modal-label">Hora</label>
+                        <select @bind="novoAgendamento.Hora" class="modal-input">
+                            @for (int h = 8; h <= 20; h++)
+                            {
+                                <option value="@h">@h:00</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-field">
+                    <label class="modal-label">Descrição</label>
+                    <textarea @bind="novoAgendamento.Descricao" rows="3" placeholder="Descrição do agendamento"
+                        class="modal-textarea"></textarea>
+                </div>
+
+                <div class="modal-actions">
+                    <button @onclick="FecharModal" class="modal-btn-cancel">
+                        Cancelar
+                    </button>
+                    <button @onclick="SalvarAgendamento" class="modal-btn-save">
+                        Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+</div>
+
+
+@code {
+    private DateTime DataSelecionada = DateTime.Today;
+    private string ModoVisualizacao = "diaria";//mensal, diaria
+    private bool mostrarModal = false;
+    private NovoAgendamentoModel novoAgendamento = new NovoAgendamentoModel();
+    private List<Cliente> clientes = new List<Cliente>();
+    
+    // Propriedades para o autocomplete
+    private string clienteBusca = string.Empty;
+    private bool mostrarListaClientes = false;
+    private Cliente? clienteSelecionado = null;
+
+
+
+    private List<AgendaSlot> agendaSlots = new();
+    private HashSet<DateTime> DiasFechados = new();
+
+    protected override void OnInitialized()
+    {
+        CarregarSlots();
+    }
+
+    private void CarregarSlots()
+    {
+        agendaSlots.Clear();
+        for (int i = 8; i <= 20; i++)
+        {
+            agendaSlots.Add(new AgendaSlot
+            {
+                Hora = i,
+                Status = "Livre",
+                Descricao = ""
+            });
+        }
+
+        // Mock
+        agendaSlots[1].Status = "Agendado";
+        agendaSlots[1].Descricao = "Ana Souza - Consulta";
+    }
+
+    private void OnModoVisualizacaoChanged()
+    {
+        if (ModoVisualizacao == "diaria")
+        {
+            CarregarSlots();
+        }
+        StateHasChanged();
+    }
+
+    private void DiaAnterior()
+    {
+        DataSelecionada = ModoVisualizacao == "mensal"
+        ? DataSelecionada.AddMonths(-1)
+        : DataSelecionada.AddDays(-1);
+
+        if (ModoVisualizacao == "diaria")
+        {
+            CarregarSlots();
+        }
+        StateHasChanged();
+    }
+
+    private void ProximoDia()
+    {
+        DataSelecionada = ModoVisualizacao == "mensal"
+        ? DataSelecionada.AddMonths(1)
+        : DataSelecionada.AddDays(1);
+
+        if (ModoVisualizacao == "diaria")
+        {
+            CarregarSlots();
+        }
+        StateHasChanged();
+    }
+
+    private void FecharDia()
+    {
+        if (!DiasFechados.Contains(DataSelecionada.Date))
+            DiasFechados.Add(DataSelecionada.Date);
+
+        foreach (var slot in agendaSlots)
+        {
+            slot.Status = "Fechado";
+            slot.Descricao = "Agenda Fechada";
+        }
+        StateHasChanged();
+    }
+
+    private void SelecionarDia(DateTime data)
+    {
+        DataSelecionada = data;
+        ModoVisualizacao = "diaria";
+        CarregarSlots();
+    }
+
+    #region Modal Agendamento
+    private void NovoAgendamento()
+    {
+        novoAgendamento = new NovoAgendamentoModel
+        {
+            Data = DataSelecionada,
+            Hora = 8
+        };
+        
+        // Limpar campos do autocomplete
+        clienteBusca = string.Empty;
+        clienteSelecionado = null;
+        clientes.Clear();
+        mostrarListaClientes = false;
+        
+        mostrarModal = true;
+        StateHasChanged();
+    }
+
+    private async Task BuscarClientes()
+    {
+        if (string.IsNullOrWhiteSpace(clienteBusca))
+        {
+            clientes.Clear();
+            mostrarListaClientes = false;
+            clienteSelecionado = null;
+            novoAgendamento.Cliente = string.Empty;
+        }
+        else
+        {
+            try
+            {
+                clientes = await _clientesServico.BuscarClientesPorFiltroAsync(1, clienteBusca);
+                mostrarListaClientes = true;
+            }
+            catch
+            {
+                // Log do erro se necessário
+                clientes.Clear();
+                mostrarListaClientes = false;
+            }
+        }
+        StateHasChanged();
+    }
+
+    private void MostrarListaClientes()
+    {
+        if (!string.IsNullOrWhiteSpace(clienteBusca))
+        {
+            mostrarListaClientes = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OcultarListaClientes()
+    {
+        // Delay para permitir que o clique no item funcione antes de ocultar
+        await Task.Delay(200);
+        mostrarListaClientes = false;
+        StateHasChanged();
+    }
+
+    private void SelecionarCliente(Cliente cliente)
+    {
+        clienteSelecionado = cliente;
+        clienteBusca = cliente.Nome;
+        novoAgendamento.Cliente = cliente.Nome;
+        mostrarListaClientes = false;
+        StateHasChanged();
+    }
+
+    private void CliqueSlot(AgendaSlot slot)
+    {
+        if (slot.Status == "Livre")
+        {
+            novoAgendamento = new NovoAgendamentoModel
+            {
+                Data = DataSelecionada,
+                Hora = slot.Hora
+            };
+            
+            // Limpar campos do autocomplete
+            clienteBusca = string.Empty;
+            clienteSelecionado = null;
+            clientes.Clear();
+            mostrarListaClientes = false;
+            
+            mostrarModal = true;
+            StateHasChanged();
+        }
+    }
+
+    private void FecharModal()
+    {
+        mostrarModal = false;
+        StateHasChanged();
+    }
+
+    private void SalvarAgendamento()
+    {
+        // Validação simples
+        if (string.IsNullOrWhiteSpace(novoAgendamento.Cliente))
+        {
+            // Aqui você poderia adicionar uma mensagem de erro
+            return;
+        }
+
+        var slot = agendaSlots.FirstOrDefault(s => s.Hora == novoAgendamento.Hora);
+        if (slot != null)
+        {
+            slot.Status = "Agendado";
+            slot.Descricao = $"{novoAgendamento.Cliente} - {novoAgendamento.Descricao}";
+        }
+
+        mostrarModal = false;
+        StateHasChanged();
+    }
+    #endregion Modal Agendamento
+
+    public class AgendaSlot
+    {
+        public int Hora { get; set; }
+        public string Status { get; set; } = "Livre";
+        public string Descricao { get; set; } = "";
+    }
+
+    public class NovoAgendamentoModel
+    {
+        [Required(ErrorMessage = "O nome do cliente é obrigatório")]
+        public string Cliente { get; set; } = string.Empty;
+
+        [Required]
+        public DateTime Data { get; set; } = DateTime.Today;
+
+        [Range(8, 20, ErrorMessage = "O horário deve estar entre 8h e 20h")]
+        public int Hora { get; set; }
+
+        public string Descricao { get; set; } = string.Empty;
+    }
+}

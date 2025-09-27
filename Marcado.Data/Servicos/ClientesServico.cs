@@ -1,9 +1,8 @@
 using Marcado.Core.Entidades;
-using Marcado.Core.Servicos;
-using Marcado.Data;
+using Marcado.Core.Servicos.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace Marcado.App.Servicos;
+namespace Marcado.Data.Servicos;
 
 public class ClientesServico(MarcadoDbContext db) : IClientesServico
 {
@@ -31,7 +30,7 @@ public class ClientesServico(MarcadoDbContext db) : IClientesServico
 
     public async Task AtualizarClienteAsync(Cliente cliente)
     {
-        var clienteExistente = await _db.Clientes.FirstOrDefaultAsync(c => c.Id == cliente.Id) ?? throw new Exception("Cliente não encontrado.");
+        var clienteExistente = await _db.Clientes.FirstOrDefaultAsync(c => c.Id == cliente.Id) ?? throw new ArgumentException("Cliente não encontrado.");
         clienteExistente.Nome = cliente.Nome;
         clienteExistente.Email = cliente.Email;
         clienteExistente.Telefone = cliente.Telefone;
@@ -42,8 +41,24 @@ public class ClientesServico(MarcadoDbContext db) : IClientesServico
 
     public async Task DeletarClienteAsync(int clienteId)
     {
-        var cliente = await _db.Clientes.FirstOrDefaultAsync(c => c.Id == clienteId) ?? throw new Exception("Cliente não encontrado.");
+        var cliente = await _db.Clientes.FirstOrDefaultAsync(c => c.Id == clienteId) ?? throw new ArgumentException("Cliente não encontrado.");
         _db.Clientes.Remove(cliente);
         await _db.SaveChangesAsync();
+    }
+
+    public async Task<List<Cliente>> BuscarClientesPorFiltroAsync(int usuarioId, string nome = "", string telefone = "", string email = "")
+    {
+        var query = _db.Clientes.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(nome))
+            query = query.Where(c => c.Nome.ToLower().Contains(nome.ToLower()));
+
+        if (!string.IsNullOrWhiteSpace(telefone))
+            query = query.Where(c => c.Telefone.ToLower().Contains(telefone.ToLower()));
+
+        if (!string.IsNullOrWhiteSpace(email))
+            query = query.Where(c => c.Email.ToLower().Contains(email.ToLower()));
+
+        return await query.OrderBy(c => c.Nome).ToListAsync();
     }
 }

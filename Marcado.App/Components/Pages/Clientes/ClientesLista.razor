@@ -3,7 +3,8 @@
 
 @using Marcado.Core.Entidades
 @using Marcado.Core.Servicos
-@using Marcado.App.Servicos
+@using Marcado.Core.Servicos.Interfaces
+@using Marcado.App.Helpers
 @inject IClientesServico _clientesServico
 @inject EstadoNavegacaoServico _estadoNavegacao
 
@@ -15,6 +16,20 @@
     <div class="card">
         <div class="card-header">
             <h2 class="card-title">Meus Clientes</h2>
+            <div class="header-actions">
+                <div class="search-container">
+                    <input type="text" 
+                           @bind="filtro" 
+                           @bind:event="oninput"
+                           @onkeyup="FiltrarClientes"
+                           placeholder="Pesquisar por nome..." 
+                           class="form-control search-input" />
+                </div>
+                <button class="btn btn-primary" @onclick="NovoCliente">
+                    <span class="desktop-only">Novo Cliente</span>
+                    <span class="mobile-only">+</span>
+                </button>
+            </div>
         </div>
 
         <table class="table">
@@ -27,12 +42,12 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var cliente in clientes)
+                @foreach (var cliente in clientesFiltrados)
                 {
                     <tr>
                         <td>@cliente.Nome</td>
                         <td>@cliente.Email</td>
-                        <td>@cliente.Telefone</td>
+                        <td>@FormatacaoHelper.FormatarTelefone(cliente.Telefone)</td>
                         <td class="actions">
                             <!-- Botão de Editar -->
                             <button class="btn btn-outline btn-edit desktop-only"
@@ -54,17 +69,36 @@
 </div>
 
 @code {
-    int usuarioId = 1; // mock até ter auth
+    int usuarioId = 1; // TODO: mock até ter auth
     string filtro = "";
     List<Marcado.Core.Entidades.Cliente> clientes = new();
+    List<Marcado.Core.Entidades.Cliente> clientesFiltrados = new();
     Marcado.Core.Entidades.Cliente clienteEdicao = new();
     bool exibirForm = false;
     [Inject] private NavigationManager Navigation { get; set; } = default!;
 
 
     #region Metodos ciclo de vida
-    protected override async Task OnInitializedAsync() =>
-    clientes = await _clientesServico.ObterClientesAsync(usuarioId);
+    protected override async Task OnInitializedAsync()
+    {
+        clientes = await _clientesServico.ObterClientesAsync(usuarioId);
+        clientesFiltrados = clientes;
+    }
+
+    private async Task FiltrarClientes()
+    {
+        if (string.IsNullOrWhiteSpace(filtro))
+        {
+            clientesFiltrados = clientes;
+        }
+        else
+        {
+            clientesFiltrados = clientes
+                .Where(c => c.Nome.Contains(filtro, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+        StateHasChanged();
+    }
 
     private void NovoCliente()
     {
@@ -81,6 +115,7 @@
     {
         await _clientesServico.DeletarClienteAsync(id);
         clientes = await _clientesServico.ObterClientesAsync(usuarioId);
+        await FiltrarClientes();
     }
     #endregion Metodos ciclo de vida
 }
