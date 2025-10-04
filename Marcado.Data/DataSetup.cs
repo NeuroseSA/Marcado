@@ -104,5 +104,110 @@ public static class DataSetup
 
         context.Clientes.AddRange(clientes);
         context.SaveChanges();
+
+        // Criar agendamentos de exemplo para teste do histórico
+        var agendamentos = new List<Agendamento>
+        {
+            // Agendamentos para Maria Silva (ID 1)
+            new Agendamento
+            {
+                UsuarioId = usuario.Id,
+                ClienteId = 1,
+                Data = DateTime.Today.AddDays(-30),
+                Hora = 900, // 09:00
+                Servico = "Corte e Escova",
+                Valor = 80.00m,
+                Status = "Realizado"
+            },
+            new Agendamento
+            {
+                UsuarioId = usuario.Id,
+                ClienteId = 1,
+                Data = DateTime.Today.AddDays(-15),
+                Hora = 1000, // 10:00
+                Servico = "Hidratação",
+                Valor = 60.00m,
+                Status = "Realizado"
+            },
+            new Agendamento
+            {
+                UsuarioId = usuario.Id,
+                ClienteId = 1,
+                Data = DateTime.Today.AddDays(7),
+                Hora = 930, // 09:30
+                Servico = "Corte",
+                Valor = 50.00m,
+                Status = "Confirmado"
+            },
+
+            // Agendamentos para João Santos (ID 2)
+            new Agendamento
+            {
+                UsuarioId = usuario.Id,
+                ClienteId = 2,
+                Data = DateTime.Today.AddDays(-25),
+                Hora = 1400, // 14:00
+                Servico = "Corte Masculino",
+                Valor = 35.00m,
+                Status = "Realizado"
+            },
+            new Agendamento
+            {
+                UsuarioId = usuario.Id,
+                ClienteId = 2,
+                Data = DateTime.Today.AddDays(-5),
+                Hora = 1430, // 14:30
+                Servico = "Corte e Barba",
+                Valor = 45.00m,
+                Status = "Cancelado"
+            },
+
+            // Agendamentos para Ana Costa (ID 3)
+            new Agendamento
+            {
+                UsuarioId = usuario.Id,
+                ClienteId = 3,
+                Data = DateTime.Today.AddDays(-20),
+                Hora = 1600, // 16:00
+                Servico = "Coloração Natural",
+                Valor = 120.00m,
+                Status = "Realizado"
+            },
+            new Agendamento
+            {
+                UsuarioId = usuario.Id,
+                ClienteId = 3,
+                Data = DateTime.Today.AddDays(-10),
+                Hora = 1530, // 15:30
+                Servico = "Corte",
+                Valor = 50.00m,
+                Status = "Realizado"
+            },
+
+            // Agendamentos para Carlos Oliveira (ID 4)
+            new Agendamento
+            {
+                UsuarioId = usuario.Id,
+                ClienteId = 4,
+                Data = DateTime.Today.AddDays(-18),
+                Hora = 1800, // 18:00
+                Servico = "Corte Executivo",
+                Valor = 55.00m,
+                Status = "Realizado"
+            },
+            new Agendamento
+            {
+                UsuarioId = usuario.Id,
+                ClienteId = 4,
+                Data = DateTime.Today.AddDays(3),
+                Hora = 1830, // 18:30
+                Servico = "Corte e Barba",
+                Valor = 65.00m,
+                Status = "Pendente"
+            }
+        };
+
+        context.Agendamentos.AddRange(agendamentos);
+        context.SaveChanges();
     }
 }

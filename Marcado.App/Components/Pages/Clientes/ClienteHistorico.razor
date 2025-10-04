@@ -1,0 +1,190 @@
+@page "/clientes/historico/{ClienteId:int}"
+
+@using Marcado.Core.Entidades
+@using Marcado.Core.Servicos.Interfaces
+@using Marcado.App.Helpers
+@inject IAgendamentoServico _agendamentoServico
+@inject IClientesServico _clientesServico
+@inject NavigationManager Navigation
+
+<link href="css/clientes.css" rel="stylesheet" />
+
+<PageTitle>Histórico do Cliente</PageTitle>
+
+<div class="page-container">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Histórico do Cliente - @nomeCliente</h2>
+            <div class="header-actions">
+                <button class="btn btn-secondary" @onclick="Voltar">
+                    Voltar
+                </button>
+            </div>
+        </div>
+
+        <div class="filters-container">
+            <div class="search-container">
+                <input type="text" @bind="filtroServico" @bind:event="oninput" @onkeyup="FiltrarAgendamentos"
+                    placeholder="Filtrar por serviço..." class="form-control search-input" />
+            </div>
+            <div class="date-filter">
+                <label for="dataInicio">De:</label>
+                <input type="date" @bind="dataInicio" @bind:after="FiltrarAgendamentos" 
+                    class="form-control date-input" id="dataInicio" />
+                
+                <label for="dataFim">Até:</label>
+                <input type="date" @bind="dataFim" @bind:after="FiltrarAgendamentos" 
+                    class="form-control date-input" id="dataFim" />
+            </div>
+        </div>
+
+        @if (carregando)
+        {
+            <div class="loading-container">
+                <p>Carregando histórico...</p>
+            </div>
+        }
+        else if (!agendamentosFiltrados.Any())
+        {
+            <div class="no-data">
+                <p>Nenhum agendamento encontrado para este cliente.</p>
+            </div>
+        }
+        else
+        {
+            <div class="stats-container">
+                <div class="stat-card">
+                    <h4>Total de Agendamentos</h4>
+                    <p class="stat-number">@agendamentosFiltrados.Count</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Realizados</h4>
+                    <p class="stat-number">@agendamentosFiltrados.Count(a => a.Status == "Realizado")</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Cancelados</h4>
+                    <p class="stat-number">@agendamentosFiltrados.Count(a => a.Status == "Cancelado")</p>
+                </div>
+            </div>
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Horário</th>
+                        <th>Serviço</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var agendamento in agendamentosFiltrados.OrderByDescending(a => a.Data))
+                    {
+                        <tr class="@GetStatusClass(agendamento.Status)">
+                            <td>@agendamento.Data.ToString("dd/MM/yyyy")</td>
+                            <td>@FormatarHorario(agendamento.Hora)</td>
+                            <td>@agendamento.Servico</td>
+                            <td>@(agendamento.Valor?.ToString("C") ?? "-")</td>
+                            <td>
+                                <span class="status-badge status-@agendamento.Status.ToLower()">
+                                    @agendamento.Status
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public int ClienteId { get; set; }
+    
+    int usuarioId = 1; // TODO: mock até ter auth
+    string nomeCliente = "";
+    string filtroServico = "";
+    DateTime? dataInicio;
+    DateTime? dataFim;
+    bool carregando = true;
+    
+    List<Agendamento> agendamentos = new();
+    List<Agendamento> agendamentosFiltrados = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarDados();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ClienteId > 0)
+        {
+            await CarregarDados();
+        }
+    }
+
+    private async Task CarregarDados()
+    {
+        carregando = true;
+        StateHasChanged();
+
+        try
+        {
+            // Obter nome do cliente
+            var clientesServico = _clientesServico;
+            var clientes = await clientesServico.ObterClientesAsync(usuarioId);
+            var cliente = clientes.FirstOrDefault(c => c.Id == ClienteId);
+            nomeCliente = cliente?.Nome ?? "Cliente não encontrado";
+
+            // Obter agendamentos do cliente
+            var todosAgendamentos = await _agendamentoServico.ObterAgendamentosAsync(usuarioId);
+            agendamentos = todosAgendamentos.Where(a => a.ClienteId == ClienteId).ToList();
+            agendamentosFiltrados = agendamentos;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao carregar dados: {ex.Message}");
+        }
+        finally
+        {
+            carregando = false;
+            StateHasChanged();
+        }
+    }
+
+    private void FiltrarAgendamentos()
+    {
+        agendamentosFiltrados = agendamentos.Where(a =>
+            (string.IsNullOrEmpty(filtroServico) || 
+             a.Servico.Contains(filtroServico, StringComparison.OrdinalIgnoreCase)) &&
+            (dataInicio == null || a.Data >= dataInicio.Value) &&
+            (dataFim == null || a.Data <= dataFim.Value)
+        ).ToList();
+
+        StateHasChanged();
+    }
+
+    private string FormatarHorario(int hora)
+    {
+        var horas = hora / 100;
+        var minutos = hora % 100;
+        return $"{horas:00}:{minutos:00}";
+    }
+
+    private string GetStatusClass(string status)
+    {
+        return status.ToLower() switch
+        {
+            "realizado" => "row-success",
+            "cancelado" => "row-danger",
+            "confirmado" => "row-info",
+            _ => ""
+        };
+    }
+
+    private void Voltar()
+    {
+        Navigation.NavigateTo("/clientes");
+    }
+}

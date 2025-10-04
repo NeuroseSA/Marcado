@@ -34,7 +34,7 @@
                     <th>Nome</th>
                     <th>E-mail</th>
                     <th>Telefone</th>
-                    <th style="width: 150px;">Ações</th>
+                    <th style="width: 200px;">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -45,6 +45,12 @@
                         <td>@cliente.Email</td>
                         <td>@FormatacaoHelper.FormatarTelefone(cliente.Telefone)</td>
                         <td class="actions">
+                            <!-- Botão de Histórico -->
+                            <button class="btn btn-info btn-history desktop-only"
+                                @onclick="() => VerHistorico(cliente.Id)">Histórico</button>
+                            <button class="btn btn-icon btn-history mobile-only" title="Histórico"
+                                @onclick="() => VerHistorico(cliente.Id)">📋</button>
+
                             <!-- Botão de Editar -->
                             <button class="btn btn-outline btn-edit desktop-only"
                                 @onclick="() => EditarCliente(cliente.Id)">Editar</button>
@@ -105,6 +111,11 @@
     {
         _estadoNavegacao.DefinirClienteParaEdicao(id);
         Navigation.NavigateTo("/clientes/editar");
+    }
+
+    private void VerHistorico(int id)
+    {
+        Navigation.NavigateTo($"/clientes/historico/{id}");
     }
 
     private async Task ExcluirCliente(int id)

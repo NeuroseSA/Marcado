@@ -1,0 +1,190 @@
+/* Estilos para o componente ClienteHistorico */
+
+.filters-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    align-items: end;
+}
+
+.search-container {
+    flex: 1;
+    min-width: 250px;
+}
+
+.date-filter {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.date-filter label {
+    font-weight: 500;
+    color: #6c757d;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.date-input {
+    width: 150px;
+}
+
+.loading-container,
+.no-data {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #6c757d;
+}
+
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.stat-card h4 {
+    font-size: 0.9rem;
+    margin: 0 0 0.5rem 0;
+    opacity: 0.9;
+    font-weight: 500;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-pendente {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-confirmado {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.status-realizado {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-cancelado {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Estilos das linhas da tabela baseados no status */
+.row-success {
+    background-color: rgba(212, 237, 218, 0.3);
+}
+
+.row-danger {
+    background-color: rgba(248, 215, 218, 0.3);
+}
+
+.row-info {
+    background-color: rgba(209, 236, 241, 0.3);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .filters-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .date-filter {
+        justify-content: space-between;
+    }
+    
+    .date-input {
+        width: 120px;
+    }
+    
+    .stats-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .stat-card {
+        padding: 1rem;
+    }
+    
+    .stat-number {
+        font-size: 1.5rem;
+    }
+    
+    /* Esconder algumas colunas em mobile */
+    .table th:nth-child(4),
+    .table td:nth-child(4) {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .date-filter {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+    
+    .date-filter label {
+        margin-bottom: 0.25rem;
+    }
+    
+    .date-input {
+        width: 100%;
+    }
+    
+    /* Esconder mais colunas em telas muito pequenas */
+    .table th:nth-child(2),
+    .table td:nth-child(2) {
+        display: none;
+    }
+}
+
+/* Animações */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.table tbody tr {
+    animation: fadeIn 0.3s ease-in-out;
+}
