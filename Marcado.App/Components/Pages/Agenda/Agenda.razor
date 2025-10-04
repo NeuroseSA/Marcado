@@ -139,6 +139,9 @@
     {
         <link href="css/agenda-modal.css" rel="stylesheet" />
         <div class="modal-overlay" @onclick="FecharModal">
+        <EditForm Model="@novoAgendamento" OnValidSubmit="SalvarAgendamento">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
             <div class="modal-content" @onclick:stopPropagation="true">
                 <button class="modal-close" @onclick="FecharModal" aria-label="Fechar modal">×</button>
                 <h3 class="modal-title">@(modoEdicao ? "Editar Agendamento" : "Novo Agendamento")</h3>
@@ -208,25 +211,26 @@
 
                 <div class="modal-field">
                     <label class="modal-label">Descrição</label>
-                    <textarea @bind="novoAgendamento.Descricao" rows="3" placeholder="Descrição do agendamento"
+                    <textarea @bind="novoAgendamento.Servico" rows="3" placeholder="Descrição do agendamento"
                         class="modal-textarea"></textarea>
                 </div>
 
                 <div class="modal-actions">
                     @if (modoEdicao && novoAgendamento.Status != "Realizado")
                     {
-                        <button @onclick="CancelarAgendamento" class="modal-btn modal-btn-delete">
+                        <button type="button" @onclick="CancelarAgendamento" class="modal-btn modal-btn-delete">
                             Cancelar
                         </button>
-                        <button @onclick="MarcarComoRealizado" class="modal-btn modal-btn-realizado">
+                        <button type="button" @onclick="MarcarComoRealizado" class="modal-btn modal-btn-realizado">
                             Realizado
                         </button>
                     }
-                    <button @onclick="SalvarAgendamento" class="modal-btn modal-btn-save">
+                    <button type="submit" class="modal-btn modal-btn-save">
                         @(modoEdicao ? "Atualizar" : "Salvar")
                     </button>
                 </div>
             </div>
+        </EditForm>
         </div>
     }
 
@@ -238,7 +242,7 @@
     private string ModoVisualizacao = "diaria"; // mensal, diaria
     private bool mostrarModal = false;
     private bool modoEdicao = false;
-    private NovoAgendamentoModel novoAgendamento = new NovoAgendamentoModel();
+    private Agendamento novoAgendamento = new Agendamento();
     private List<Cliente> clientes = new List<Cliente>();
 
     // Propriedades para o autocomplete
@@ -607,10 +611,12 @@
         var horasDisponiveis = GerarHorasDisponiveis();
         var horaInicial = horasDisponiveis.FirstOrDefault();
         
-        novoAgendamento = new NovoAgendamentoModel
+        novoAgendamento = new Agendamento
         {
             Data = DataSelecionada,
-            Hora = horaInicial
+            Hora = horaInicial,
+            Status = "Agendado",
+            UsuarioId = 1 // TODO: Usar ID do usuário logado
         };
 
         // Limpar campos do autocomplete
@@ -630,7 +636,6 @@
             clientes.Clear();
             mostrarListaClientes = false;
             clienteSelecionado = null;
-            novoAgendamento.Cliente = string.Empty;
         }
         else
         {
@@ -670,7 +675,8 @@
     {
         clienteSelecionado = cliente;
         clienteBusca = cliente.Nome;
-        novoAgendamento.Cliente = cliente.Nome;
+        novoAgendamento.Cliente = cliente;
+        novoAgendamento.ClienteId = cliente.Id;
         mostrarListaClientes = false;
         StateHasChanged();
     }
@@ -691,10 +697,12 @@
         {
             // Modo novo agendamento
             modoEdicao = false;
-            novoAgendamento = new NovoAgendamentoModel
+            novoAgendamento = new Agendamento
             {
                 Data = DataSelecionada,
-                Hora = slot.Hora
+                Hora = slot.Hora,
+                Status = "Agendado",
+                UsuarioId = 1 // TODO: Usar ID do usuário logado
             };
 
             // Limpar campos do autocomplete
@@ -712,15 +720,7 @@
             var agendamento = await _agendamentoServico.ObterAgendamentoPorIdAsync(slot.AgendamentoId.Value);
             if (agendamento != null)
             {
-                novoAgendamento = new NovoAgendamentoModel
-                {
-                    Id = agendamento.Id,
-                    Data = agendamento.Data,
-                    Hora = agendamento.Hora,
-                    Cliente = agendamento.Cliente?.Nome ?? "",
-                    Descricao = agendamento.Servico,
-                    Status = agendamento.Status
-                };
+                novoAgendamento = agendamento;
 
                 clienteSelecionado = agendamento.Cliente;
                 clienteBusca = agendamento.Cliente?.Nome ?? "";
@@ -747,7 +747,7 @@
     private async Task SalvarAgendamento()
     {
         // Validação simples
-        if (string.IsNullOrWhiteSpace(novoAgendamento.Cliente) || clienteSelecionado == null)
+        if (clienteSelecionado == null)
         {
             _feedbackService.MostrarErro(
                 "Erro de Validação",
@@ -756,35 +756,23 @@
             return;
         }
 
-        var slot = agendaSlots.FirstOrDefault(s => s.Hora == novoAgendamento.Hora);
-        if (slot != null)
+        // Garantir que o cliente está associado
+        novoAgendamento.ClienteId = clienteSelecionado.Id;
+        novoAgendamento.Cliente = clienteSelecionado;
+
+        try
         {
-            if (modoEdicao && novoAgendamento.Id.HasValue)
+            if (modoEdicao && novoAgendamento.Id > 0)
             {
                 // Atualizar agendamento existente
-                var agendamentoExistente = await _agendamentoServico.ObterAgendamentoPorIdAsync(novoAgendamento.Id.Value);
-                if (agendamentoExistente != null)
-                {
-                    agendamentoExistente.ClienteId = clienteSelecionado.Id;
-                    agendamentoExistente.Data = novoAgendamento.Data;
-                    agendamentoExistente.Hora = novoAgendamento.Hora;
-                    agendamentoExistente.Servico = novoAgendamento.Descricao;
-                    
-                    await _agendamentoServico.AtualizarAgendamentoAsync(agendamentoExistente);
-                }
+                await _agendamentoServico.AtualizarAgendamentoAsync(novoAgendamento);
             }
             else
             {
                 // Criar novo agendamento
-                await _agendamentoServico.AgendarServicoAsync(new Agendamento
-                {
-                    ClienteId = clienteSelecionado.Id,
-                    UsuarioId = 1, // TODO: substituir pelo ID do usuário logado
-                    Data = novoAgendamento.Data,
-                    Hora = novoAgendamento.Hora,
-                    Servico = novoAgendamento.Descricao,
-                    Status = "Agendado"
-                });
+                novoAgendamento.Status = "Agendado";
+                novoAgendamento.UsuarioId = 1; // TODO: substituir pelo ID do usuário logado
+                await _agendamentoServico.AgendarServicoAsync(novoAgendamento);
             }
             
             // Recarregar os slots para refletir as mudanças
@@ -806,6 +794,14 @@
                 );
             }
         }
+        catch (Exception ex)
+        {
+            _feedbackService.MostrarErro(
+                "Erro ao Salvar",
+                $"Não foi possível salvar o agendamento: {ex.Message}"
+            );
+            return;
+        }
 
         mostrarModal = false;
         StateHasChanged();
@@ -813,11 +809,11 @@
     
     private async Task CancelarAgendamento()
     {
-        if (modoEdicao && novoAgendamento.Id.HasValue)
+        if (modoEdicao && novoAgendamento.Id > 0)
         {
             try
             {
-                await _agendamentoServico.CancelarAgendamentoAsync(novoAgendamento.Id.Value);
+                await _agendamentoServico.CancelarAgendamentoAsync(novoAgendamento.Id);
                 await CarregarSlots();
                 
                 _feedbackService.MostrarSucesso(
@@ -840,12 +836,12 @@
 
     private async Task MarcarComoRealizado()
     {
-        if (modoEdicao && novoAgendamento.Id.HasValue)
+        if (modoEdicao && novoAgendamento.Id > 0)
         {
             try
             {
-                //TODO: Implementar funcionalidade de marcar como realizado
-                @* await _agendamentoServico.MarcarComoRealizadoAsync(novoAgendamento.Id.Value); *@
+                novoAgendamento.Status = "Realizado";
+                await _agendamentoServico.AtualizarAgendamentoAsync(novoAgendamento);
                 await CarregarSlots();
                 
                 _feedbackService.MostrarSucesso(
@@ -993,19 +989,6 @@ private ProgressoDia ObterProgressoDia(DateTime data)
         public string Descricao { get; set; } = "";
         public Cliente? Cliente { get; set; }
         public int? AgendamentoId { get; set; }
-    }
-
-    public class NovoAgendamentoModel
-    {
-        public int? Id { get; set; }
-        [Required(ErrorMessage = "O nome do cliente é obrigatório")]
-        public string Cliente { get; set; } = string.Empty;
-        [Required]
-        public DateTime Data { get; set; } = DateTime.Today;
-        [Range(8, 20, ErrorMessage = "O horário deve estar entre 8h e 20h")]
-        public int Hora { get; set; }
-        public string Descricao { get; set; } = string.Empty;
-        public string Status { get; set; } = "Livre";
     }
 
     public class ProgressoDia
