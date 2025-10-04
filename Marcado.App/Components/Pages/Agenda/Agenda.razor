@@ -97,11 +97,12 @@
                         // Preencher o calendário
                         for (var data = dataInicio; data <= dataFim; data = data.AddDays(1))
                         {
+                            var diaSelecaoMensal = data;
                             var isDoMesAtual = data.Month == DataSelecionada.Month;
                             var progressoDia = isDoMesAtual ? ObterProgressoDia(data) : null;
                             var cssClass = GetCssClassesDia(data, isDoMesAtual, progressoDia);
                             
-                            <div class="@cssClass" @onclick="() => SelecionarDiaCalendario(data, isDoMesAtual)">
+                            <div class="@cssClass" @onclick="() => SelecionarDiaCalendario(diaSelecaoMensal, isDoMesAtual)">
                                 <div class="dia-numero">
                                     @data.Day
                                 </div>
