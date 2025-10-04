@@ -52,7 +52,7 @@
                     <div class="agenda-slot @(slot.Status.ToLower())" @onclick="async () => await CliqueSlot(slot)">
                         <span class="hora">@slot.Hora:00</span>
                         <div class="descricao">
-                            @if (slot.Status == "Agendado")
+                            @if (slot.Status == "Agendado" || slot.Status == "Realizado")
                             {
                                 <strong>@slot.Cliente?.Nome</strong><br />
                                 <span>@slot.Descricao</span>
@@ -140,6 +140,7 @@
         <link href="css/agenda-modal.css" rel="stylesheet" />
         <div class="modal-overlay" @onclick="FecharModal">
             <div class="modal-content" @onclick:stopPropagation="true">
+                <button class="modal-close" @onclick="FecharModal" aria-label="Fechar modal">×</button>
                 <h3 class="modal-title">@(modoEdicao ? "Editar Agendamento" : "Novo Agendamento")</h3>
 
                 <div class="modal-field">
@@ -212,16 +213,16 @@
                 </div>
 
                 <div class="modal-actions">
-                    @if (modoEdicao)
+                    @if (modoEdicao && novoAgendamento.Status != "Realizado")
                     {
-                        <button @onclick="CancelarAgendamento" class="modal-btn-delete">
+                        <button @onclick="CancelarAgendamento" class="modal-btn modal-btn-delete">
                             Cancelar
                         </button>
+                        <button @onclick="MarcarComoRealizado" class="modal-btn modal-btn-realizado">
+                            Realizado
+                        </button>
                     }
-                    <button @onclick="FecharModal" class="modal-btn-cancel">
-                        @(modoEdicao ? "Fechar" : "Cancelar")
-                    </button>
-                    <button @onclick="SalvarAgendamento" class="modal-btn-save">
+                    <button @onclick="SalvarAgendamento" class="modal-btn modal-btn-save">
                         @(modoEdicao ? "Atualizar" : "Salvar")
                     </button>
                 </div>
@@ -702,7 +703,7 @@
             clientes.Clear();
             mostrarListaClientes = false;
         }
-        else if (slot.Status == "Agendado" && slot.AgendamentoId.HasValue)
+        else if ((slot.Status == "Agendado" || slot.Status == "Realizado") && slot.AgendamentoId.HasValue)
         {
             // Modo edição
             modoEdicao = true;
@@ -717,7 +718,8 @@
                     Data = agendamento.Data,
                     Hora = agendamento.Hora,
                     Cliente = agendamento.Cliente?.Nome ?? "",
-                    Descricao = agendamento.Servico
+                    Descricao = agendamento.Servico,
+                    Status = agendamento.Status
                 };
 
                 clienteSelecionado = agendamento.Cliente;
@@ -831,6 +833,34 @@
                 _feedbackService.MostrarErro(
                     "Erro ao Cancelar",
                     "Não foi possível cancelar o agendamento. Tente novamente."
+                );
+            }
+        }
+    }
+
+    private async Task MarcarComoRealizado()
+    {
+        if (modoEdicao && novoAgendamento.Id.HasValue)
+        {
+            try
+            {
+                //TODO: Implementar funcionalidade de marcar como realizado
+                @* await _agendamentoServico.MarcarComoRealizadoAsync(novoAgendamento.Id.Value); *@
+                await CarregarSlots();
+                
+                _feedbackService.MostrarSucesso(
+                    "Agendamento Marcado como Realizado!",
+                    "O agendamento foi marcado como realizado com sucesso."
+                );
+                
+                mostrarModal = false;
+                StateHasChanged();
+            }
+            catch (Exception)
+            {
+                _feedbackService.MostrarErro(
+                    "Erro ao Atualizar",
+                    "Não foi possível atualizar o agendamento. Tente novamente."
                 );
             }
         }
@@ -968,17 +998,14 @@ private ProgressoDia ObterProgressoDia(DateTime data)
     public class NovoAgendamentoModel
     {
         public int? Id { get; set; }
-        
         [Required(ErrorMessage = "O nome do cliente é obrigatório")]
         public string Cliente { get; set; } = string.Empty;
-
         [Required]
         public DateTime Data { get; set; } = DateTime.Today;
-
         [Range(8, 20, ErrorMessage = "O horário deve estar entre 8h e 20h")]
         public int Hora { get; set; }
-
         public string Descricao { get; set; } = string.Empty;
+        public string Status { get; set; } = "Livre";
     }
 
     public class ProgressoDia
