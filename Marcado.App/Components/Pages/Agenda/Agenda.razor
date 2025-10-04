@@ -9,6 +9,7 @@
 @using System.Security.AccessControl
 @inject IClientesServico _clientesServico
 @inject IAgendamentoServico _agendamentoServico
+@inject IConfiguracaoHorarioServico _configuracaoServico
 @inject FeedbackService _feedbackService
 
 <link href="css/agenda.css" rel="stylesheet" />
@@ -35,6 +36,14 @@
             </div>
         </div>
 
+        @if (!diaAtual_ativo)
+        {
+            <div class="alert alert-warning">
+                <strong>⚠️ Dia Inativo</strong> - Este dia da semana está desabilitado nas configurações. 
+                <a href="/config/horarios" class="alert-link">Clique aqui para configurar</a>
+            </div>
+        }
+
         @if (ModoVisualizacao == "diaria")
         {
             <div class="agenda-grid">
@@ -59,27 +68,66 @@
         }
         else if (ModoVisualizacao == "mensal")
         {
-            <div class="agenda-mensal">
-                @for (int dia = 1; dia <= DateTime.DaysInMonth(DataSelecionada.Year, DataSelecionada.Month); dia++)
-                {
-                    var data = new DateTime(DataSelecionada.Year, DataSelecionada.Month, dia);
-                    var progressoDia = ObterProgressoDia(data);
-                    <div class="dia-progresso" @onclick="() => SelecionarDia(data)">
-                        <div class="dia-header">
-                            <span class="numero">@dia</span>
-                            <span class="percentual">@(progressoDia.Percentual)%</span>
-                        </div>
-                        <div class="barra-progresso">
-                            <div class="progresso-fill" 
-                                 style="width: @(progressoDia.Percentual)%; background: @(ObterCorProgresso(progressoDia.Percentual))"></div>
-                        </div>
-                        <div class="dia-info">
-                            <span class="badge @(progressoDia.StatusCss)">
-                                @progressoDia.StatusTexto
-                            </span>
-                        </div>
-                    </div>
-                }
+            <div class="calendario-mensal">
+                <!-- Cabeçalho com os dias da semana -->
+                <div class="calendario-header">
+                    <div class="dia-semana">DOM</div>
+                    <div class="dia-semana">SEG</div>
+                    <div class="dia-semana">TER</div>
+                    <div class="dia-semana">QUA</div>
+                    <div class="dia-semana">QUI</div>
+                    <div class="dia-semana">SEX</div>
+                    <div class="dia-semana">SÁB</div>
+                </div>
+
+                <!-- Grid do calendário -->
+                <div class="calendario-grid">
+                    @{
+                        var primeiroDiaMes = new DateTime(DataSelecionada.Year, DataSelecionada.Month, 1);
+                        var ultimoDiaMes = new DateTime(DataSelecionada.Year, DataSelecionada.Month, DateTime.DaysInMonth(DataSelecionada.Year, DataSelecionada.Month));
+                        
+                        // Calcular quantos dias do mês anterior mostrar
+                        var diasAntesDoInicio = (int)primeiroDiaMes.DayOfWeek;
+                        var dataInicio = primeiroDiaMes.AddDays(-diasAntesDoInicio);
+                        
+                        // Calcular quantos dias do próximo mês mostrar
+                        var diasDepoisDoFim = 6 - (int)ultimoDiaMes.DayOfWeek;
+                        var dataFim = ultimoDiaMes.AddDays(diasDepoisDoFim);
+                        
+                        // Preencher o calendário
+                        for (var data = dataInicio; data <= dataFim; data = data.AddDays(1))
+                        {
+                            var isDoMesAtual = data.Month == DataSelecionada.Month;
+                            var progressoDia = isDoMesAtual ? ObterProgressoDia(data) : null;
+                            var cssClass = GetCssClassesDia(data, isDoMesAtual, progressoDia);
+                            
+                            <div class="@cssClass" @onclick="() => SelecionarDiaCalendario(data, isDoMesAtual)">
+                                <div class="dia-numero">
+                                    @data.Day
+                                </div>
+                                
+                                @if (isDoMesAtual && progressoDia != null)
+                                {
+                                    <div class="dia-conteudo">
+                                        @if (progressoDia.TipoStatus != StatusDia.Inativo)
+                                        {
+                                            <div class="barra-progresso-mini">
+                                                <div class="progresso-fill-mini" 
+                                                     style="width: @(progressoDia.Percentual)%; background: @(ObterCorProgresso(progressoDia))"></div>
+                                            </div>
+                                        }
+                                        
+                                        <div class="status-indicator">
+                                            <span class="badge-mini @(progressoDia.StatusCss)">
+                                                @progressoDia.StatusTexto
+                                            </span>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    }
+                </div>
             </div>
         }
     </div>
@@ -141,15 +189,15 @@
                     <div class="modal-col">
                         <label class="modal-label">Hora</label>
                         <select @bind="novoAgendamento.Hora" class="modal-input">
-                            @for (int h = 8; h <= 20; h++)
+                            @foreach (var hora in GerarHorasDisponiveis())
                             {
-                                @if (!VerificarHoraDisponivel(h))
+                                @if (!VerificarHoraDisponivel(hora))
                                 {
-                                    <option value="@h" disabled style="text-decoration: line-through; color: #941111;">@h:00</option>
+                                    <option value="@hora" disabled style="text-decoration: line-through; color: #941111;">@hora:00</option>
                                 }
                                 else
                                 {
-                                    <option value="@h">@h:00</option>
+                                    <option value="@hora">@hora:00</option>
                                 }
                             }
                         </select>
@@ -198,21 +246,60 @@
 
     private List<AgendaSlot> agendaSlots = new();
     private HashSet<DateTime> DiasFechados = new();
+    
+    // Configurações de horário
+    private ConfiguracaoHorario? configuracaoHorario;
+    private TimeSpan horaInicio = new(8, 0, 0);
+    private TimeSpan horaFim = new(18, 0, 0);
+    private int intervaloSlots = 60;
+    private bool diaAtual_ativo = true;
 
     protected override async Task OnInitializedAsync()
     {
+        await CarregarConfiguracoes();
         await CarregarSlots();
         await CarregarAgendamentosMes();
+    }
+
+    private async Task CarregarConfiguracoes()
+    {
+        try
+        {
+            configuracaoHorario = await _configuracaoServico.ObterConfiguracaoAsync(1); // TODO: Usar ID do usuário logado
+            
+            if (configuracaoHorario != null)
+            {
+                horaInicio = configuracaoHorario.HoraInicio;
+                horaFim = configuracaoHorario.HoraFim;
+                intervaloSlots = configuracaoHorario.IntervaloSlots;
+            }
+        }
+        catch (Exception ex)
+        {
+            _feedbackService.MostrarErro("Erro", $"Não foi possível carregar as configurações: {ex.Message}");
+        }
     }
 
     private async Task CarregarSlots()
     {
         agendaSlots.Clear();
-        for (int i = 8; i <= 20; i++)
+        
+        // Verificar se o dia está ativo
+        diaAtual_ativo = await VerificarDiaAtivo(DataSelecionada);
+        
+        if (!diaAtual_ativo)
+        {
+            StateHasChanged();
+            return;
+        }
+
+        // Gerar slots baseados na configuração
+        var horasDisponiveis = GerarHorasDisponiveis();
+        foreach (var hora in horasDisponiveis)
         {
             agendaSlots.Add(new AgendaSlot
             {
-                Hora = i,
+                Hora = hora,
                 Status = "Livre",
                 Descricao = ""
             });
@@ -232,6 +319,81 @@
         }
 
         StateHasChanged();
+    }
+
+    private async Task<bool> VerificarDiaAtivo(DateTime data)
+    {
+        if (configuracaoHorario == null) return true; // Se não há configuração, permite todos os dias
+
+        return data.DayOfWeek switch
+        {
+            DayOfWeek.Monday => configuracaoHorario.SegundaAtiva,
+            DayOfWeek.Tuesday => configuracaoHorario.TercaAtiva,
+            DayOfWeek.Wednesday => configuracaoHorario.QuartaAtiva,
+            DayOfWeek.Thursday => configuracaoHorario.QuintaAtiva,
+            DayOfWeek.Friday => configuracaoHorario.SextaAtiva,
+            DayOfWeek.Saturday => configuracaoHorario.SabadoAtiva,
+            DayOfWeek.Sunday => configuracaoHorario.DomingoAtiva,
+            _ => false
+        };
+    }
+
+    private List<int> GerarHorasDisponiveis()
+    {
+        var horas = new List<int>();
+        
+        // Converter TimeSpan para horas inteiras
+        var horaInicioInt = horaInicio.Hours;
+        var horaFimInt = horaFim.Hours;
+        
+        // Gerar slots baseados no intervalo configurado
+        if (intervaloSlots == 60)
+        {
+            // Intervalos de 1 hora
+            for (int h = horaInicioInt; h < horaFimInt; h++)
+            {
+                horas.Add(h);
+            }
+        }
+        else if (intervaloSlots == 30)
+        {
+            // Intervalos de 30 minutos - por enquanto vamos manter só horas inteiras
+            // TODO: Implementar suporte a 30 minutos futuramente
+            for (int h = horaInicioInt; h < horaFimInt; h++)
+            {
+                horas.Add(h);
+            }
+        }
+        else
+        {
+            // Para outros intervalos, usar horas inteiras
+            for (int h = horaInicioInt; h < horaFimInt; h += (intervaloSlots / 60))
+            {
+                if (h < horaFimInt)
+                {
+                    horas.Add(h);
+                }
+            }
+        }
+        
+        return horas;
+    }
+
+    private bool VerificarDiaAtivoSincrono(DateTime data)
+    {
+        if (configuracaoHorario == null) return true; // Se não há configuração, permite todos os dias
+
+        return data.DayOfWeek switch
+        {
+            DayOfWeek.Monday => configuracaoHorario.SegundaAtiva,
+            DayOfWeek.Tuesday => configuracaoHorario.TercaAtiva,
+            DayOfWeek.Wednesday => configuracaoHorario.QuartaAtiva,
+            DayOfWeek.Thursday => configuracaoHorario.QuintaAtiva,
+            DayOfWeek.Friday => configuracaoHorario.SextaAtiva,
+            DayOfWeek.Saturday => configuracaoHorario.SabadoAtiva,
+            DayOfWeek.Sunday => configuracaoHorario.DomingoAtiva,
+            _ => false
+        };
     }
 
     private async Task OnModoVisualizacaoChanged()
@@ -342,19 +504,111 @@
     }
     private async Task SelecionarDia(DateTime data)
     {
+        // Verificar se o dia está inativo
+        if (!VerificarDiaAtivoSincrono(data))
+        {
+            _feedbackService.MostrarErro(
+                "Dia Inativo", 
+                "Este dia da semana está desabilitado nas configurações. Para agendar neste dia, primeiro ative-o nas configurações de horários."
+            );
+            return;
+        }
+
         DataSelecionada = data;
         ModoVisualizacao = "diaria";
         await CarregarSlots();
     }
 
-    #region Modal Agendamento
-    private void NovoAgendamento()
+    private async Task SelecionarDiaCalendario(DateTime data, bool isDoMesAtual)
     {
+        if (!isDoMesAtual)
+        {
+            // Se clicou em um dia de outro mês, navegar para esse mês
+            DataSelecionada = data;
+            await CarregarSlots();
+            await CarregarAgendamentosMes();
+            StateHasChanged();
+        }
+        else
+        {
+            // Mesmo comportamento do SelecionarDia para dias do mês atual
+            await SelecionarDia(data);
+        }
+    }
+
+    private string GetCssClassesDia(DateTime data, bool isDoMesAtual, ProgressoDia? progressoDia)
+    {
+        var classes = new List<string> { "calendario-dia" };
+
+        if (!isDoMesAtual)
+        {
+            classes.Add("outro-mes");
+        }
+        else
+        {
+            classes.Add("mes-atual");
+            
+            if (progressoDia != null)
+            {
+                switch (progressoDia.TipoStatus)
+                {
+                    case StatusDia.Inativo:
+                        classes.Add("inativo");
+                        break;
+                    case StatusDia.Fechado:
+                        classes.Add("fechado");
+                        break;
+                    case StatusDia.Completo:
+                        classes.Add("completo");
+                        break;
+                    case StatusDia.Parcial:
+                        classes.Add("parcial");
+                        break;
+                    case StatusDia.Livre:
+                        classes.Add("livre");
+                        break;
+                }
+            }
+        }
+
+        // Destacar o dia atual
+        if (data.Date == DateTime.Today)
+        {
+            classes.Add("hoje");
+        }
+
+        // Destacar o dia selecionado
+        if (data.Date == DataSelecionada.Date)
+        {
+            classes.Add("selecionado");
+        }
+
+        return string.Join(" ", classes);
+    }
+
+    #region Modal Agendamento
+    private async Task NovoAgendamento()
+    {
+        // Verificar se o dia está ativo
+        if (!await VerificarDiaAtivo(DataSelecionada))
+        {
+            _feedbackService.MostrarErro(
+                "Dia Inativo", 
+                "Este dia da semana está desabilitado nas configurações. Acesse as configurações para habilitá-lo."
+            );
+            return;
+        }
+
         modoEdicao = false;
+        
+        // Definir hora inicial baseada na configuração
+        var horasDisponiveis = GerarHorasDisponiveis();
+        var horaInicial = horasDisponiveis.FirstOrDefault();
+        
         novoAgendamento = new NovoAgendamentoModel
         {
             Data = DataSelecionada,
-            Hora = 8
+            Hora = horaInicial
         };
 
         // Limpar campos do autocomplete
@@ -421,6 +675,16 @@
 
     private async Task CliqueSlot(AgendaSlot slot)
     {
+        // Verificar se o dia está ativo antes de qualquer ação
+        if (!await VerificarDiaAtivo(DataSelecionada))
+        {
+            _feedbackService.MostrarErro(
+                "Dia Inativo", 
+                "Este dia da semana está desabilitado nas configurações."
+            );
+            return;
+        }
+
         if (slot.Status == "Livre")
         {
             // Modo novo agendamento
@@ -581,6 +845,18 @@
     #region Progresso Mensal
 private ProgressoDia ObterProgressoDia(DateTime data)
 {
+    // Verificar se o dia está inativo nas configurações
+    if (configuracaoHorario != null && !VerificarDiaAtivoSincrono(data))
+    {
+        return new ProgressoDia
+        {
+            Percentual = 0,
+            StatusTexto = "Inativo",
+            TipoStatus = StatusDia.Inativo,
+            StatusCss = "inativo"
+        };
+    }
+
     // Se o dia está fechado, retorna 100%
     if (DiasFechados.Contains(data.Date))
     {
@@ -593,12 +869,13 @@ private ProgressoDia ObterProgressoDia(DateTime data)
         };
     }
 
-    // Calcular progresso baseado nos horários (8h às 20h = 13 horários)
-    var totalHorarios = 13; // 8h, 9h, 10h... 20h
+    // Calcular progresso baseado nos horários configurados
+    var horasDisponiveis = GerarHorasDisponiveis();
+    var totalHorarios = horasDisponiveis.Count;
     var agendamentosDia = agendamentosCache.Where(a => a.Data.Date == data.Date).ToList();
     var horariosOcupados = agendamentosDia.Count;
 
-    var percentual = (int)Math.Round((double)horariosOcupados / totalHorarios * 100);
+    var percentual = totalHorarios > 0 ? (int)Math.Round((double)horariosOcupados / totalHorarios * 100) : 0;
 
     ProgressoDia status;
     if (percentual == 0)
@@ -650,6 +927,16 @@ private ProgressoDia ObterProgressoDia(DateTime data)
             return "#8b5cf6"; // Roxo - quase completo
         else
             return "#10b981"; // Verde - completo/fechado
+    }
+
+    private string ObterCorProgresso(ProgressoDia progresso)
+    {
+        return progresso.TipoStatus switch
+        {
+            StatusDia.Inativo => "#ec4899", // Rosa - inativo
+            StatusDia.Fechado => "#10b981", // Verde - fechado
+            _ => ObterCorProgresso(progresso.Percentual)
+        };
     }
 
     // Cache para melhorar performance na visualização mensal
@@ -706,7 +993,8 @@ private ProgressoDia ObterProgressoDia(DateTime data)
         Livre,
         Parcial,
         Completo,
-        Fechado
+        Fechado,
+        Inativo
     }
 }
 
