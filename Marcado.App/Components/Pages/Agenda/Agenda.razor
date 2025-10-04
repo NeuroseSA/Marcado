@@ -11,6 +11,7 @@
 @inject IAgendamentoServico _agendamentoServico
 @inject IConfiguracaoHorarioServico _configuracaoServico
 @inject FeedbackService _feedbackService
+@inject NavigationManager Navigation
 
 <link href="css/agenda.css" rel="stylesheet" />
 
@@ -148,38 +149,56 @@
 
                 <div class="modal-field">
                     <label class="modal-label">Cliente *</label>
-                    <div class="autocomplete-container">
-                        <input type="text"
-                               @bind="clienteBusca"
-                               @bind:event="oninput"
-                               @bind:after="BuscarClientes"
-                               @onfocus="MostrarListaClientes"
-                               @onblur="OcultarListaClientes"
-                               placeholder="Digite o nome do cliente"
-                               class="modal-input autocomplete-input"
-                               autocomplete="off" />
+                    <div class="cliente-selection-container">
+                        <div class="autocomplete-container">
+                            <input type="text"
+                                   @bind="clienteBusca"
+                                   @bind:event="oninput"
+                                   @bind:after="BuscarClientes"
+                                   @onfocus="MostrarListaClientes"
+                                   @onblur="OcultarListaClientes"
+                                   placeholder="Digite o nome do cliente"
+                                   class="modal-input autocomplete-input"
+                                   autocomplete="off" />
 
-                        @if (mostrarListaClientes && clientes.Any())
-                        {
-                            <div class="autocomplete-dropdown">
-                                @foreach (var cliente in clientes.Take(8))
-                                {
-                                    <div class="autocomplete-item"
-                                         @onmousedown="() => SelecionarCliente(cliente)"
-                                         @onmousedown:preventDefault="true">
-                                        <div class="cliente-nome">@cliente.Nome</div>
-                                        <div class="cliente-info">@FormatacaoHelper.FormatarTelefone(cliente.Telefone) - @cliente.Email</div>
-                                    </div>
-                                }
-                            </div>
-                        }
-
-                        @if (mostrarListaClientes && !clientes.Any() && !string.IsNullOrWhiteSpace(clienteBusca))
-                        {
-                            <div class="autocomplete-dropdown">
-                                <div class="autocomplete-item no-results">
-                                    Nenhum cliente encontrado
+                            @if (mostrarListaClientes && clientes.Any())
+                            {
+                                <div class="autocomplete-dropdown">
+                                    @foreach (var cliente in clientes.Take(8))
+                                    {
+                                        <div class="autocomplete-item"
+                                             @onmousedown="() => SelecionarCliente(cliente)"
+                                             @onmousedown:preventDefault="true">
+                                            <div class="cliente-nome">@cliente.Nome</div>
+                                            <div class="cliente-info">@FormatacaoHelper.FormatarTelefone(cliente.Telefone) - @cliente.Email</div>
+                                        </div>
+                                    }
                                 </div>
+                            }
+
+                            @if (mostrarListaClientes && !clientes.Any() && !string.IsNullOrWhiteSpace(clienteBusca))
+                            {
+                                <div class="autocomplete-dropdown">
+                                    <div class="autocomplete-item no-results">
+                                        Nenhum cliente encontrado
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        
+                        @* Atalho rápido para histórico do cliente *@
+                        @if (novoAgendamento.ClienteId.HasValue && novoAgendamento.ClienteId > 0)
+                        {
+                            <div class="cliente-actions">
+                                <button type="button" 
+                                        class="btn-historico-quick" 
+                                        @onclick="() => AbrirHistoricoCliente(novoAgendamento.ClienteId.Value)"
+                                        title="Ver histórico do cliente">
+                                    📋
+                                </button>
+                                <span class="cliente-selecionado-info">
+                                    Cliente: <strong>@GetNomeClienteSelecionado()</strong>
+                                </span>
                             </div>
                         }
                     </div>
@@ -679,6 +698,27 @@
         novoAgendamento.ClienteId = cliente.Id;
         mostrarListaClientes = false;
         StateHasChanged();
+    }
+
+    // Métodos para o atalho de histórico do cliente
+    private void AbrirHistoricoCliente(int clienteId)
+    {
+        Navigation.NavigateTo($"/clientes/historico/{clienteId}", forceLoad: true);
+    }
+
+    private string GetNomeClienteSelecionado()
+    {
+        if (clienteSelecionado != null)
+        {
+            return clienteSelecionado.Nome;
+        }
+        
+        if (novoAgendamento?.Cliente != null)
+        {
+            return novoAgendamento.Cliente.Nome;
+        }
+        
+        return "Cliente não selecionado";
     }
 
     private async Task CliqueSlot(AgendaSlot slot)

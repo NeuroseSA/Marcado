@@ -245,3 +245,76 @@
   font-size: 0.875rem;
   color: #6b7280;
 }
+
+/* Estilos para o atalho de histórico do cliente */
+.cliente-selection-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cliente-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background-color: #f8f9fa;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.btn-historico-quick {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  color: white;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-historico-quick:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+}
+
+.btn-historico-quick:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.cliente-selecionado-info {
+  font-size: 0.9rem;
+  color: #374151;
+  flex: 1;
+}
+
+.cliente-selecionado-info strong {
+  color: #111827;
+}
+
+/* Responsividade */
+@media (max-width: 480px) {
+  .cliente-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .btn-historico-quick {
+    width: 100%;
+    height: 36px;
+  }
+  
+  .cliente-selecionado-info {
+    text-align: center;
+  }
+}
