@@ -23,10 +23,12 @@
                 <button class="btn btn-outline" @onclick="DiaAnterior">← Anterior</button>
                 <InputDate @bind-Value="DataSelecionada" class="input-date" />
                 <button class="btn btn-outline" @onclick="ProximoDia">Próximo →</button>
+
                 <select class="select" @bind="ModoVisualizacao" @bind:after="OnModoVisualizacaoChanged">
                     <option value="diaria">Visão Diária</option>
                     <option value="mensal">Visão Mensal</option>
                 </select>
+
                 <button class="btn btn-success" @onclick="AbrirDia">Abrir Dia</button>
                 <button class="btn btn-secondary" @onclick="FecharDia">Fechar Dia</button>
                 <button class="btn btn-primary" @onclick="NovoAgendamento">+ Novo Agendamento</button>
@@ -40,7 +42,17 @@
                 {
                     <div class="agenda-slot @(slot.Status.ToLower())" @onclick="async () => await CliqueSlot(slot)">
                         <span class="hora">@slot.Hora:00</span>
-                        <span class="descricao">@slot.Descricao</span>
+                        <div class="descricao">
+                            @if (slot.Status == "Agendado")
+                            {
+                                <strong>@slot.Cliente?.Nome</strong><br />
+                                <span>@slot.Descricao</span>
+                            }
+                            else
+                            {
+                                <span>@slot.Descricao</span>
+                            }
+                        </div>
                     </div>
                 }
             </div>
@@ -51,15 +63,27 @@
                 @for (int dia = 1; dia <= DateTime.DaysInMonth(DataSelecionada.Year, DataSelecionada.Month); dia++)
                 {
                     var data = new DateTime(DataSelecionada.Year, DataSelecionada.Month, dia);
-                    var status = DiasFechados.Contains(data.Date) ? "fechado" : "livre";
-                    <div class="dia @(status)" @onclick="() => SelecionarDia(data)">
-                        <span class="numero">@dia</span>
-                        <span class="status">@status</span>
+                    var progressoDia = ObterProgressoDia(data);
+                    <div class="dia-progresso" @onclick="() => SelecionarDia(data)">
+                        <div class="dia-header">
+                            <span class="numero">@dia</span>
+                            <span class="percentual">@(progressoDia.Percentual)%</span>
+                        </div>
+                        <div class="barra-progresso">
+                            <div class="progresso-fill" 
+                                 style="width: @(progressoDia.Percentual)%; background: @(ObterCorProgresso(progressoDia.Percentual))"></div>
+                        </div>
+                        <div class="dia-info">
+                            <span class="badge @(progressoDia.StatusCss)">
+                                @progressoDia.StatusTexto
+                            </span>
+                        </div>
                     </div>
                 }
             </div>
         }
     </div>
+
 
     @* Modal de agendamento *@
     @if (mostrarModal)
@@ -178,6 +202,7 @@
     protected override async Task OnInitializedAsync()
     {
         await CarregarSlots();
+        await CarregarAgendamentosMes();
     }
 
     private async Task CarregarSlots()
@@ -200,7 +225,7 @@
             if (slot != null)
             {
                 slot.Status = agendamento.Status;
-                slot.Descricao = agendamento.Cliente?.Nome != null ? $"{agendamento.Cliente?.Nome} - {agendamento.Servico}" : agendamento.Servico;
+                slot.Descricao = agendamento.Servico;
                 slot.Cliente = agendamento.Cliente;
                 slot.AgendamentoId = agendamento.Id;
             }
@@ -215,6 +240,10 @@
         {
             await CarregarSlots();
         }
+        else if (ModoVisualizacao == "mensal")
+        {
+            await CarregarAgendamentosMes();
+        }
         StateHasChanged();
     }
 
@@ -224,10 +253,11 @@
             ? DataSelecionada.AddMonths(-1)
             : DataSelecionada.AddDays(-1);
 
+        await CarregarSlots();
+
         if (ModoVisualizacao == "diaria")
-        {
             await CarregarSlots();
-        }
+        
         StateHasChanged();
     }
 
@@ -246,8 +276,26 @@
 
     private async Task FecharDia()
     {
-        // Verificar se há agendamentos para o dia
         var agendamentosAtivos = agendaSlots.Where(x => x.Status == "Agendado").ToList();
+
+        if (!DiasFechados.Contains(DataSelecionada.Date))
+            DiasFechados.Add(DataSelecionada.Date);
+
+        foreach (var slot in agendaSlots)
+        {
+            if (slot.Status != "Agendado")
+            {
+                await _agendamentoServico.AgendarServicoAsync(new Agendamento
+                {
+                    ClienteId = null,
+                    UsuarioId = 1, // TODO: substituir pelo ID do usuário logado
+                    Data = DataSelecionada,
+                    Hora = slot.Hora,
+                    Servico = "Agenda Fechada",
+                    Status = "Fechado"
+                });
+            }
+        }
 
         if (agendamentosAtivos.Any())
         {
@@ -261,43 +309,14 @@
                 mensagem,
                 8000 // 8 segundos para dar tempo de ler
             );
-
-            foreach (var slot in agendaSlots)
-            {
-                if (slot.Status != "Agendado")
-                {
-                    slot.Status = "Fechado";
-                    slot.Descricao = "Agenda Fechada";
-
-                    await _agendamentoServico.AgendarServicoAsync(new Agendamento
-                    {
-                        ClienteId = null,
-                        UsuarioId = 1, // TODO: substituir pelo ID do usuário logado
-                        Data = DataSelecionada,
-                        Hora = slot.Hora,
-                        Servico = "Agenda Fechada",
-                        Status = "Fechado"
-                    });
-                }
-            }
-            
-            return;
         }
-
-        // Se não há agendamentos, fechar o dia normalmente
-        if (!DiasFechados.Contains(DataSelecionada.Date))
-            DiasFechados.Add(DataSelecionada.Date);
-
-        foreach (var slot in agendaSlots)
+        else
         {
-            slot.Status = "Fechado";
-            slot.Descricao = "Agenda Fechada";
+            _feedbackService.MostrarSucesso(
+                "Dia Fechado!",
+                $"A agenda do dia {DataSelecionada.ToString("dd/MM/yyyy")} foi fechada com sucesso."
+            );
         }
-        
-        _feedbackService.MostrarSucesso(
-            "Dia Fechado!",
-            $"A agenda do dia {DataSelecionada.ToString("dd/MM/yyyy")} foi fechada com sucesso."
-        );
 
         await CarregarSlots();
         StateHasChanged();
@@ -310,7 +329,8 @@
 
         foreach (var slot in agendaSlots.Where(x => x.Status == "Fechado" && x.AgendamentoId.HasValue))
         {
-            await _agendamentoServico.CancelarAgendamentoAsync(slot.AgendamentoId.Value);
+            if (slot.AgendamentoId.HasValue)
+                await _agendamentoServico.CancelarAgendamentoAsync(slot.AgendamentoId.Value);
         }
 
         _feedbackService.MostrarSucesso(
@@ -541,7 +561,7 @@
                 mostrarModal = false;
                 StateHasChanged();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 _feedbackService.MostrarErro(
                     "Erro ao Cancelar",
@@ -557,6 +577,96 @@
         return slot != null && slot.Status == "Livre";
     }
     #endregion Modal Agendamento
+
+    #region Progresso Mensal
+private ProgressoDia ObterProgressoDia(DateTime data)
+{
+    // Se o dia está fechado, retorna 100%
+    if (DiasFechados.Contains(data.Date))
+    {
+        return new ProgressoDia
+        {
+            Percentual = 100,
+            StatusTexto = "Fechado",
+            TipoStatus = StatusDia.Fechado,
+            StatusCss = "fechado"
+        };
+    }
+
+    // Calcular progresso baseado nos horários (8h às 20h = 13 horários)
+    var totalHorarios = 13; // 8h, 9h, 10h... 20h
+    var agendamentosDia = agendamentosCache.Where(a => a.Data.Date == data.Date).ToList();
+    var horariosOcupados = agendamentosDia.Count;
+
+    var percentual = (int)Math.Round((double)horariosOcupados / totalHorarios * 100);
+
+    ProgressoDia status;
+    if (percentual == 0)
+    {
+        status = new ProgressoDia 
+        { 
+            Percentual = 0, 
+            StatusTexto = "Livre", 
+            TipoStatus = StatusDia.Livre,
+            StatusCss = "livre"
+        };
+    }
+    else if (percentual >= 100)
+    {
+        status = new ProgressoDia 
+        { 
+            Percentual = 100, 
+            StatusTexto = "Completo", 
+            TipoStatus = StatusDia.Completo,
+            StatusCss = "completo"
+        };
+    }
+    else
+    {
+        status = new ProgressoDia 
+        { 
+            Percentual = percentual, 
+            StatusTexto = $"{horariosOcupados}/{totalHorarios}", 
+            TipoStatus = StatusDia.Parcial,
+            StatusCss = "parcial"
+        };
+    }
+
+    return status;
+}
+
+
+    private string ObterCorProgresso(int percentual)
+    {
+        if (percentual == 0)
+            return "#e5e7eb"; // Cinza claro - livre
+        else if (percentual <= 25)
+            return "#ef4444"; // Vermelho - baixa ocupação
+        else if (percentual <= 50)
+            return "#f59e0b"; // Amarelo - média ocupação  
+        else if (percentual <= 75)
+            return "#3b82f6"; // Azul - alta ocupação
+        else if (percentual < 100)
+            return "#8b5cf6"; // Roxo - quase completo
+        else
+            return "#10b981"; // Verde - completo/fechado
+    }
+
+    // Cache para melhorar performance na visualização mensal
+    private List<Agendamento> agendamentosCache = new();
+
+    private async Task CarregarAgendamentosMes()
+    {
+        var inicioMes = new DateTime(DataSelecionada.Year, DataSelecionada.Month, 1);
+        var fimMes = inicioMes.AddMonths(1).AddDays(-1);
+        
+        // Carregar todos os agendamentos do mês
+        agendamentosCache = await _agendamentoServico.ObterAgendamentosAsync(1, null);
+        agendamentosCache = agendamentosCache
+            .Where(a => a.Data >= inicioMes && a.Data <= fimMes)
+            .ToList();
+    }
+    #endregion Progresso Mensal
 
     public class AgendaSlot
     {
@@ -582,4 +692,21 @@
 
         public string Descricao { get; set; } = string.Empty;
     }
+
+    public class ProgressoDia
+    {
+        public int Percentual { get; set; }
+        public string StatusTexto { get; set; } = "";
+        public StatusDia TipoStatus { get; set; }
+        public string StatusCss { get; set; } = string.Empty; 
+    }
+
+    public enum StatusDia
+    {
+        Livre,
+        Parcial,
+        Completo,
+        Fechado
+    }
 }
+

@@ -10,6 +10,7 @@ public class MarcadoDbContext : DbContext
     public DbSet<Usuario> Usuarios => Set<Usuario>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
     public DbSet<Agendamento> Agendamentos => Set<Agendamento>();
+    public DbSet<ConfiguracaoHorario> ConfiguracoesHorario => Set<ConfiguracaoHorario>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -30,5 +31,15 @@ public class MarcadoDbContext : DbContext
             .WithMany()
             .HasForeignKey(a => a.UsuarioId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        b.Entity<ConfiguracaoHorario>()
+            .HasOne(c => c.Usuario)
+            .WithMany()
+            .HasForeignKey(c => c.UsuarioId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        b.Entity<ConfiguracaoHorario>()
+            .HasIndex(c => c.UsuarioId)
+            .IsUnique();
     }
 }
