@@ -16,3 +16,6 @@ out/
 
 # Configs sensíveis
 appsettings.Development.json
+.vscode/launch.json
+Database/marcado.db-shm
+Database/marcado.db-wal
