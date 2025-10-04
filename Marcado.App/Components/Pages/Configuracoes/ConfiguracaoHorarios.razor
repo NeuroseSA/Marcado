@@ -1,0 +1,241 @@
+@page "/config/horarios"
+@using Marcado.Core.Entidades
+@using Marcado.Core.Servicos.Interfaces
+@using Marcado.App.Services
+@inject IConfiguracaoHorarioServico _configuracaoServico
+@inject FeedbackService _feedbackService
+@inject NavigationManager Navigation
+
+<link href="css/configuracoes.css" rel="stylesheet" />
+
+<PageTitle>Configuração de Horários</PageTitle>
+
+<div class="page-container">
+    <div class="card">
+        <div class="page-header">
+            <button class="btn btn-outline" @onclick="VoltarParaConfiguracoes">← Voltar</button>
+            <h2 class="card-title">Configuração de Horários</h2>
+        </div>
+
+        <EditForm Model="@config" OnValidSubmit="SalvarConfiguracao">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="form-section">
+                <h3>Horário Comercial</h3>
+
+                <div class="form-group-inline">
+                    <label>Início do Dia:</label>
+                    <InputText @bind-Value="horaInicioString" type="time" class="input" />
+                    <label>Fim do Dia:</label>
+                    <InputText @bind-Value="horaFimString" type="time" class="input" />
+                </div>
+
+                <div class="form-group-inline">
+                    <label>Intervalo entre agendamentos (minutos):</label>
+                    <InputSelect @bind-Value="config.IntervaloSlots" class="input">
+                        <option value="30">30 minutos</option>
+                        <option value="60">1 hora</option>
+                        <option value="90">1 hora e 30 minutos</option>
+                        <option value="120">2 horas</option>
+                    </InputSelect>
+                </div>
+
+                <div class="form-group">
+                    <label>Dias Ativos:</label>
+                    <div class="dias-semana">
+                        <label class="checkbox-dia">
+                            <InputCheckbox @bind-Value="config.SegundaAtiva" />
+                            <span>Segunda-feira</span>
+                        </label>
+                        <label class="checkbox-dia">
+                            <InputCheckbox @bind-Value="config.TercaAtiva" />
+                            <span>Terça-feira</span>
+                        </label>
+                        <label class="checkbox-dia">
+                            <InputCheckbox @bind-Value="config.QuartaAtiva" />
+                            <span>Quarta-feira</span>
+                        </label>
+                        <label class="checkbox-dia">
+                            <InputCheckbox @bind-Value="config.QuintaAtiva" />
+                            <span>Quinta-feira</span>
+                        </label>
+                        <label class="checkbox-dia">
+                            <InputCheckbox @bind-Value="config.SextaAtiva" />
+                            <span>Sexta-feira</span>
+                        </label>
+                        <label class="checkbox-dia">
+                            <InputCheckbox @bind-Value="config.SabadoAtiva" />
+                            <span>Sábado</span>
+                        </label>
+                        <label class="checkbox-dia">
+                            <InputCheckbox @bind-Value="config.DomingoAtiva" />
+                            <span>Domingo</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary" disabled="@salvando">
+                    @if (salvando)
+                    {
+                        <span>Salvando...</span>
+                    }
+                    else
+                    {
+                        <span>Salvar Configurações</span>
+                    }
+                </button>
+                <button type="button" class="btn btn-secondary" @onclick="RestaurarPadrao" disabled="@salvando">
+                    Restaurar Padrão
+                </button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private string horaInicioString = "08:00";
+    private string horaFimString = "18:00";
+    private bool salvando = false;
+    private bool carregando = true;
+
+    private ConfiguracaoHorario config = new()
+    {
+        UsuarioId = 1, // TODO: Substituir pelo ID do usuário logado
+        HoraInicio = new TimeSpan(8, 0, 0),
+        HoraFim = new TimeSpan(18, 0, 0),
+        IntervaloSlots = 60,
+        SegundaAtiva = true,
+        TercaAtiva = true,
+        QuartaAtiva = true,
+        QuintaAtiva = true,
+        SextaAtiva = true,
+        SabadoAtiva = false,
+        DomingoAtiva = false
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarConfiguracao();
+    }
+
+    private async Task CarregarConfiguracao()
+    {
+        carregando = true;
+        try
+        {
+            var configuracaoExistente = await _configuracaoServico.ObterConfiguracaoAsync(1); // TODO: Usar ID do usuário logado
+            
+            if (configuracaoExistente != null)
+            {
+                config = configuracaoExistente;
+                horaInicioString = config.HoraInicio.ToString(@"hh\:mm");
+                horaFimString = config.HoraFim.ToString(@"hh\:mm");
+            }
+        }
+        catch (Exception ex)
+        {
+            _feedbackService.MostrarErro("Erro ao Carregar", $"Não foi possível carregar as configurações: {ex.Message}");
+        }
+        finally
+        {
+            carregando = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SalvarConfiguracao()
+    {
+        if (salvando) return;
+
+        salvando = true;
+        try
+        {
+            // Validar horários
+            if (!TimeSpan.TryParse(horaInicioString, out var horaInicio) ||
+                !TimeSpan.TryParse(horaFimString, out var horaFim))
+            {
+                _feedbackService.MostrarErro("Erro de Validação", "Os horários informados são inválidos.");
+                return;
+            }
+
+            if (horaInicio >= horaFim)
+            {
+                _feedbackService.MostrarErro("Erro de Validação", "O horário de início deve ser anterior ao horário de fim.");
+                return;
+            }
+
+            // Verificar se pelo menos um dia está ativo
+            if (!config.SegundaAtiva && !config.TercaAtiva && !config.QuartaAtiva && 
+                !config.QuintaAtiva && !config.SextaAtiva && !config.SabadoAtiva && !config.DomingoAtiva)
+            {
+                _feedbackService.MostrarErro("Erro de Validação", "Pelo menos um dia da semana deve estar ativo.");
+                return;
+            }
+
+            // Atualizar a configuração
+            config.HoraInicio = horaInicio;
+            config.HoraFim = horaFim;
+
+            await _configuracaoServico.SalvarConfiguracaoAsync(config);
+            
+            _feedbackService.MostrarSucesso(
+                "Configurações Salvas!", 
+                "As configurações de horário foram salvas com sucesso."
+            );
+        }
+        catch (Exception ex)
+        {
+            _feedbackService.MostrarErro("Erro ao Salvar", $"Não foi possível salvar as configurações: {ex.Message}");
+        }
+        finally
+        {
+            salvando = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RestaurarPadrao()
+    {
+        if (salvando) return;
+
+        try
+        {
+            config = new ConfiguracaoHorario
+            {
+                UsuarioId = 1, // TODO: Usar ID do usuário logado
+                HoraInicio = new TimeSpan(8, 0, 0),
+                HoraFim = new TimeSpan(18, 0, 0),
+                IntervaloSlots = 60,
+                SegundaAtiva = true,
+                TercaAtiva = true,
+                QuartaAtiva = true,
+                QuintaAtiva = true,
+                SextaAtiva = true,
+                SabadoAtiva = false,
+                DomingoAtiva = false
+            };
+
+            horaInicioString = "08:00";
+            horaFimString = "18:00";
+
+            _feedbackService.MostrarInfo(
+                "Configurações Restauradas", 
+                "As configurações padrão foram restauradas. Clique em 'Salvar' para confirmar."
+            );
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            _feedbackService.MostrarErro("Erro", $"Não foi possível restaurar as configurações padrão: {ex.Message}");
+        }
+    }
+
+    private void VoltarParaConfiguracoes()
+    {
+        Navigation.NavigateTo("/config");
+    }
+}

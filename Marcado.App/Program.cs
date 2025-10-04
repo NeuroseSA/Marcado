@@ -14,6 +14,7 @@ builder.Services.AddRazorComponents()
 #region Serviços
 builder.Services.AddScoped<IClientesServico, ClientesServico>();
 builder.Services.AddScoped<IAgendamentoServico, AgendamentoServico>();
+builder.Services.AddScoped<IConfiguracaoHorarioServico, ConfiguracaoHorarioServico>();
 builder.Services.AddScoped<EstadoNavegacaoServico>();
 builder.Services.AddScoped<FeedbackService>();
 #endregion Serviços

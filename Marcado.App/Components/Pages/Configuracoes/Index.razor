@@ -1,0 +1,65 @@
+@page "/config"
+@using Microsoft.AspNetCore.Components.Web
+
+<link href="css/configuracoes.css" rel="stylesheet" />
+
+<PageTitle>Configurações</PageTitle>
+
+<div class="page-container">
+    <div class="card">
+        <h2 class="card-title">Configurações</h2>
+        <p>Personalize o Marcado de acordo com suas necessidades.</p>
+        
+        <div class="config-sections">
+            <div class="config-section">
+                <div class="config-section-header">
+                    <h3>⏰ Horários</h3>
+                    <p>Configure os horários de funcionamento e dias ativos</p>
+                </div>
+                <div class="config-section-actions">
+                    <a href="/config/horarios" class="btn btn-primary">Configurar Horários</a>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <div class="config-section-header">
+                    <h3>👤 Perfil</h3>
+                    <p>Gerencie suas informações pessoais e de conta</p>
+                </div>
+                <div class="config-section-actions">
+                    <button class="btn btn-secondary" disabled>Em breve</button>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <div class="config-section-header">
+                    <h3>🔔 Notificações</h3>
+                    <p>Configure alertas e lembretes de agendamentos</p>
+                </div>
+                <div class="config-section-actions">
+                    <button class="btn btn-secondary" disabled>Em breve</button>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <div class="config-section-header">
+                    <h3>🎨 Aparência</h3>
+                    <p>Personalize cores e layout da aplicação</p>
+                </div>
+                <div class="config-section-actions">
+                    <button class="btn btn-secondary" disabled>Em breve</button>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <div class="config-section-header">
+                    <h3>📊 Backup e Dados</h3>
+                    <p>Exporte seus dados e configure backups automáticos</p>
+                </div>
+                <div class="config-section-actions">
+                    <button class="btn btn-secondary" disabled>Em breve</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
