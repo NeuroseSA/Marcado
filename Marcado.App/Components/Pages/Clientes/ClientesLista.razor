@@ -76,7 +76,6 @@
     List<Marcado.Core.Entidades.Cliente> clientes = new();
     List<Marcado.Core.Entidades.Cliente> clientesFiltrados = new();
     Marcado.Core.Entidades.Cliente clienteEdicao = new();
-    bool exibirForm = false;
     [Inject] private NavigationManager Navigation { get; set; } = default!;
 
 
@@ -115,7 +114,7 @@
 
     private void VerHistorico(int id)
     {
-        Navigation.NavigateTo($"/clientes/historico/{id}");
+        Navigation.NavigateTo($"/clientes/historico/{id}?returnUrl=/clientes");
     }
 
     private async Task ExcluirCliente(int id)

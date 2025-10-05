@@ -1,5 +1,7 @@
 @page "/agenda"
 @using System.ComponentModel.DataAnnotations
+@using System.Globalization
+@using System.Linq
 @using Marcado.Core.Entidades
 @using Marcado.Core.Servicos
 @using Marcado.Core.Servicos.Interfaces
@@ -197,7 +199,7 @@
                                     📋
                                 </button>
                                 <span class="cliente-selecionado-info">
-                                    Cliente: <strong>@GetNomeClienteSelecionado()</strong>
+                                    <strong>Ver histórico do cliente</strong>
                                 </span>
                             </div>
                         }
@@ -234,6 +236,17 @@
                         class="modal-textarea"></textarea>
                 </div>
 
+                <div class="modal-field">
+                    <label class="modal-label">Valor</label>
+                    <input type="text"
+                           @bind="valorFormatado"
+                           @oninput="OnValorInput"
+                           class="modal-input"
+                           inputmode="decimal"
+                           placeholder="R$ 0,00"
+                           maxlength="15" />
+                </div>
+
                 <div class="modal-actions">
                     @if (modoEdicao && novoAgendamento.Status != "Realizado")
                     {
@@ -260,7 +273,7 @@
     private DateTime DataSelecionada = DateTime.Today;
     private string ModoVisualizacao = "diaria"; // mensal, diaria
     private bool mostrarModal = false;
-    private bool modoEdicao = false;
+        private bool modoEdicao = false;
     private Agendamento novoAgendamento = new Agendamento();
     private List<Cliente> clientes = new List<Cliente>();
 
@@ -278,6 +291,7 @@
     private TimeSpan horaFim = new(18, 0, 0);
     private int intervaloSlots = 60;
     private bool diaAtual_ativo = true;
+    private List<Agendamento> agendamentosCache = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -703,22 +717,7 @@
     // Métodos para o atalho de histórico do cliente
     private void AbrirHistoricoCliente(int clienteId)
     {
-        Navigation.NavigateTo($"/clientes/historico/{clienteId}", forceLoad: true);
-    }
-
-    private string GetNomeClienteSelecionado()
-    {
-        if (clienteSelecionado != null)
-        {
-            return clienteSelecionado.Nome;
-        }
-        
-        if (novoAgendamento?.Cliente != null)
-        {
-            return novoAgendamento.Cliente.Nome;
-        }
-        
-        return "Cliente não selecionado";
+        Navigation.NavigateTo($"/clientes/historico/{clienteId}?returnUrl=/agenda", forceLoad: true);
     }
 
     private async Task CliqueSlot(AgendaSlot slot)
@@ -798,18 +797,17 @@
 
         // Garantir que o cliente está associado
         novoAgendamento.ClienteId = clienteSelecionado.Id;
-        novoAgendamento.Cliente = clienteSelecionado;
 
         try
         {
             if (modoEdicao && novoAgendamento.Id > 0)
             {
-                // Atualizar agendamento existente
                 await _agendamentoServico.AtualizarAgendamentoAsync(novoAgendamento);
             }
             else
             {
                 // Criar novo agendamento
+                novoAgendamento.Cliente = clienteSelecionado;
                 novoAgendamento.Status = "Agendado";
                 novoAgendamento.UsuarioId = 1; // TODO: substituir pelo ID do usuário logado
                 await _agendamentoServico.AgendarServicoAsync(novoAgendamento);
@@ -907,78 +905,140 @@
         var slot = agendaSlots.FirstOrDefault(s => s.Hora == hora);
         return slot != null && slot.Status == "Livre";
     }
+
+    private string valorFormatado
+    {
+        get => novoAgendamento.Valor > 0 ? FormatarMoeda(novoAgendamento.Valor) : "";
+        set
+        {
+            var valorLimpo = LimparFormatoMoeda(value);
+            if (decimal.TryParse(valorLimpo, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var valor))
+            {
+                novoAgendamento.Valor = valor / 100; // Dividir por 100 pois estamos trabalhando com centavos
+            }
+            else
+            {
+                novoAgendamento.Valor = 0;
+            }
+        }
+    }
+
+    private void OnValorInput(ChangeEventArgs e)
+    {
+        var valor = e.Value?.ToString() ?? "";
+        var valorFormatadoMoeda = AplicarMascaraMoeda(valor);
+        valorFormatado = valorFormatadoMoeda;
+        StateHasChanged();
+    }
+
+    private string AplicarMascaraMoeda(string valor)
+    {
+        // Remove tudo que não é dígito
+        var apenasNumeros = new string(valor.Where(char.IsDigit).ToArray());
+        
+        if (string.IsNullOrEmpty(apenasNumeros))
+            return "";
+
+        // Converte para decimal (centavos)
+        if (long.TryParse(apenasNumeros, out var centavos))
+        {
+            var valorDecimal = centavos / 100.0m;
+            return FormatarMoeda(valorDecimal);
+        }
+
+        return "";
+    }
+
+    private string FormatarMoeda(decimal valor)
+    {
+        return valor.ToString("C2", new System.Globalization.CultureInfo("pt-BR"));
+    }
+
+    private string LimparFormatoMoeda(string valor)
+    {
+        if (string.IsNullOrEmpty(valor))
+            return "0";
+
+        // Remove símbolos de moeda e espaços
+        var valorLimpo = valor.Replace("R$", "")
+                              .Replace(".", "")
+                              .Replace(",", "")
+                              .Replace(" ", "")
+                              .Trim();
+
+        return string.IsNullOrEmpty(valorLimpo) ? "0" : valorLimpo;
+    }
     #endregion Modal Agendamento
 
     #region Progresso Mensal
-private ProgressoDia ObterProgressoDia(DateTime data)
-{
-    // Verificar se o dia está inativo nas configurações
-    if (configuracaoHorario != null && !VerificarDiaAtivoSincrono(data))
+    private ProgressoDia ObterProgressoDia(DateTime data)
     {
-        return new ProgressoDia
+        // Verificar se o dia está inativo nas configurações
+        if (configuracaoHorario != null && !VerificarDiaAtivoSincrono(data))
         {
-            Percentual = 0,
-            StatusTexto = "Inativo",
-            TipoStatus = StatusDia.Inativo,
-            StatusCss = "inativo"
-        };
-    }
+            return new ProgressoDia
+            {
+                Percentual = 0,
+                StatusTexto = "Inativo",
+                TipoStatus = StatusDia.Inativo,
+                StatusCss = "inativo"
+            };
+        }
 
-    // Se o dia está fechado, retorna 100%
-    if (DiasFechados.Contains(data.Date))
-    {
-        return new ProgressoDia
+        // Se o dia está fechado, retorna 100%
+        if (DiasFechados.Contains(data.Date))
         {
-            Percentual = 100,
-            StatusTexto = "Fechado",
-            TipoStatus = StatusDia.Fechado,
-            StatusCss = "fechado"
-        };
+            return new ProgressoDia
+            {
+                Percentual = 100,
+                StatusTexto = "Fechado",
+                TipoStatus = StatusDia.Fechado,
+                StatusCss = "fechado"
+            };
+        }
+
+        // Calcular progresso baseado nos horários configurados
+        var horasDisponiveis = GerarHorasDisponiveis();
+        var totalHorarios = horasDisponiveis.Count;
+        var agendamentosDia = agendamentosCache.Where(a => a.Data.Date == data.Date).ToList();
+        var horariosOcupados = agendamentosDia.Count;
+
+        var percentual = totalHorarios > 0 ? (int)Math.Round((double)horariosOcupados / totalHorarios * 100) : 0;
+
+        ProgressoDia status;
+        if (percentual == 0)
+        {
+            status = new ProgressoDia 
+            { 
+                Percentual = 0, 
+                StatusTexto = "Livre", 
+                TipoStatus = StatusDia.Livre,
+                StatusCss = "livre"
+            };
+        }
+        else if (percentual >= 100)
+        {
+            status = new ProgressoDia 
+            { 
+                Percentual = 100, 
+                StatusTexto = "Completo", 
+                TipoStatus = StatusDia.Completo,
+                StatusCss = "completo"
+            };
+        }
+        else
+        {
+            status = new ProgressoDia 
+            { 
+                Percentual = percentual, 
+                StatusTexto = $"{horariosOcupados}/{totalHorarios}", 
+                TipoStatus = StatusDia.Parcial,
+                StatusCss = "parcial"
+            };
+        }
+
+        return status;
     }
-
-    // Calcular progresso baseado nos horários configurados
-    var horasDisponiveis = GerarHorasDisponiveis();
-    var totalHorarios = horasDisponiveis.Count;
-    var agendamentosDia = agendamentosCache.Where(a => a.Data.Date == data.Date).ToList();
-    var horariosOcupados = agendamentosDia.Count;
-
-    var percentual = totalHorarios > 0 ? (int)Math.Round((double)horariosOcupados / totalHorarios * 100) : 0;
-
-    ProgressoDia status;
-    if (percentual == 0)
-    {
-        status = new ProgressoDia 
-        { 
-            Percentual = 0, 
-            StatusTexto = "Livre", 
-            TipoStatus = StatusDia.Livre,
-            StatusCss = "livre"
-        };
-    }
-    else if (percentual >= 100)
-    {
-        status = new ProgressoDia 
-        { 
-            Percentual = 100, 
-            StatusTexto = "Completo", 
-            TipoStatus = StatusDia.Completo,
-            StatusCss = "completo"
-        };
-    }
-    else
-    {
-        status = new ProgressoDia 
-        { 
-            Percentual = percentual, 
-            StatusTexto = $"{horariosOcupados}/{totalHorarios}", 
-            TipoStatus = StatusDia.Parcial,
-            StatusCss = "parcial"
-        };
-    }
-
-    return status;
-}
-
 
     private string ObterCorProgresso(int percentual)
     {
@@ -1005,9 +1065,6 @@ private ProgressoDia ObterProgressoDia(DateTime data)
             _ => ObterCorProgresso(progresso.Percentual)
         };
     }
-
-    // Cache para melhorar performance na visualização mensal
-    private List<Agendamento> agendamentosCache = new();
 
     private async Task CarregarAgendamentosMes()
     {

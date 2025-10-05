@@ -8,7 +8,7 @@ public class Agendamento
     public DateTime Data { get; set; }
     public int Hora { get; set; }
     public string Servico { get; set; } = "";
-    public decimal? Valor { get; set; }
+    public decimal Valor { get; set; } = 0;
     public string Status { get; set; } = "Pendente"; // Pendente/Confirmado/Cancelado/Realizado
 
     // Propriedades de navegação

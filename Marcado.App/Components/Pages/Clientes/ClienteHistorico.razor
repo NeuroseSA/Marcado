@@ -3,6 +3,7 @@
 @using Marcado.Core.Entidades
 @using Marcado.Core.Servicos.Interfaces
 @using Marcado.App.Helpers
+@using Microsoft.AspNetCore.Mvc
 @inject IAgendamentoServico _agendamentoServico
 @inject IClientesServico _clientesServico
 @inject NavigationManager Navigation
@@ -29,12 +30,12 @@
             </div>
             <div class="date-filter">
                 <label for="dataInicio">De:</label>
-                <input type="date" @bind="dataInicio" @bind:after="FiltrarAgendamentos" 
-                    class="form-control date-input" id="dataInicio" />
-                
+                <input type="date" @bind="dataInicio" @bind:after="FiltrarAgendamentos" class="form-control date-input"
+                    id="dataInicio" />
+
                 <label for="dataFim">Até:</label>
-                <input type="date" @bind="dataFim" @bind:after="FiltrarAgendamentos" 
-                    class="form-control date-input" id="dataFim" />
+                <input type="date" @bind="dataFim" @bind:after="FiltrarAgendamentos" class="form-control date-input"
+                    id="dataFim" />
             </div>
         </div>
 
@@ -84,7 +85,7 @@
                             <td>@agendamento.Data.ToString("dd/MM/yyyy")</td>
                             <td>@FormatarHorario(agendamento.Hora)</td>
                             <td>@agendamento.Servico</td>
-                            <td>@(agendamento.Valor?.ToString("C") ?? "-")</td>
+                            <td>@(agendamento.Valor > 0 ? agendamento.Valor.ToString("C") : "-")</td>
                             <td>
                                 <span class="status-badge status-@agendamento.Status.ToLower()">
                                     @agendamento.Status
@@ -100,14 +101,16 @@
 
 @code {
     [Parameter] public int ClienteId { get; set; }
-    
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
     int usuarioId = 1; // TODO: mock até ter auth
     string nomeCliente = "";
     string filtroServico = "";
     DateTime? dataInicio;
     DateTime? dataFim;
     bool carregando = true;
-    
+
     List<Agendamento> agendamentos = new();
     List<Agendamento> agendamentosFiltrados = new();
 
@@ -156,10 +159,10 @@
     private void FiltrarAgendamentos()
     {
         agendamentosFiltrados = agendamentos.Where(a =>
-            (string.IsNullOrEmpty(filtroServico) || 
-             a.Servico.Contains(filtroServico, StringComparison.OrdinalIgnoreCase)) &&
-            (dataInicio == null || a.Data >= dataInicio.Value) &&
-            (dataFim == null || a.Data <= dataFim.Value)
+        (string.IsNullOrEmpty(filtroServico) ||
+        a.Servico.Contains(filtroServico, StringComparison.OrdinalIgnoreCase)) &&
+        (dataInicio == null || a.Data >= dataInicio.Value) &&
+        (dataFim == null || a.Data <= dataFim.Value)
         ).ToList();
 
         StateHasChanged();
@@ -185,6 +188,9 @@
 
     private void Voltar()
     {
-        Navigation.NavigateTo("/clientes");
+        if (!string.IsNullOrEmpty(ReturnUrl))
+            Navigation.NavigateTo(ReturnUrl);
+        else
+            Navigation.NavigateTo("/");
     }
 }

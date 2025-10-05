@@ -25,6 +25,11 @@ public class MarcadoDbContext : DbContext
             .WithMany()
             .HasForeignKey(a => a.ClienteId)
             .OnDelete(DeleteBehavior.Cascade);
+            
+        b.Entity<Agendamento>(e =>
+        {
+            e.Property(a => a.Valor).HasColumnType("decimal(18,2)");
+        });
 
         b.Entity<Agendamento>()
             .HasOne(a => a.Usuario)

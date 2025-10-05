@@ -92,16 +92,15 @@
 }
 
 /* Cancelar (vermelho destrutivo) */
-.modal-btn-cancel {
+.modal-btn-delete {
   background: #ef4444;
   color: #fff;
-  margin-right: auto;
 }
-.modal-btn-cancel:hover {
+.modal-btn-delete:hover {
   background: #dc2626;
   transform: translateY(-1px);
 }
-.modal-btn-cancel:active {
+.modal-btn-delete:active {
   background: #b91c1c;
   transform: translateY(0);
 }
