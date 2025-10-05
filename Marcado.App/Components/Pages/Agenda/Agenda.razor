@@ -324,7 +324,7 @@
         agendaSlots.Clear();
         
         // Verificar se o dia está ativo
-        diaAtual_ativo = await VerificarDiaAtivo(DataSelecionada);
+        diaAtual_ativo = VerificarDiaAtivo(DataSelecionada);
         
         if (!diaAtual_ativo)
         {
@@ -360,7 +360,7 @@
         StateHasChanged();
     }
 
-    private async Task<bool> VerificarDiaAtivo(DateTime data)
+    private bool VerificarDiaAtivo(DateTime data)
     {
         if (configuracaoHorario == null) return true; // Se não há configuração, permite todos os dias
 
@@ -626,10 +626,10 @@
     }
 
     #region Modal Agendamento
-    private async Task NovoAgendamento()
+    private void NovoAgendamento()
     {
         // Verificar se o dia está ativo
-        if (!await VerificarDiaAtivo(DataSelecionada))
+        if (!VerificarDiaAtivo(DataSelecionada))
         {
             _feedbackService.MostrarErro(
                 "Dia Inativo", 
@@ -723,7 +723,7 @@
     private async Task CliqueSlot(AgendaSlot slot)
     {
         // Verificar se o dia está ativo antes de qualquer ação
-        if (!await VerificarDiaAtivo(DataSelecionada))
+        if (!VerificarDiaAtivo(DataSelecionada))
         {
             _feedbackService.MostrarErro(
                 "Dia Inativo", 

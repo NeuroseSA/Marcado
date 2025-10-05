@@ -99,7 +99,6 @@
     private string horaInicioString = "08:00";
     private string horaFimString = "18:00";
     private bool salvando = false;
-    private bool carregando = true;
 
     private ConfiguracaoHorario config = new()
     {
@@ -123,7 +122,6 @@
 
     private async Task CarregarConfiguracao()
     {
-        carregando = true;
         try
         {
             var configuracaoExistente = await _configuracaoServico.ObterConfiguracaoAsync(1); // TODO: Usar ID do usuário logado
@@ -141,7 +139,6 @@
         }
         finally
         {
-            carregando = false;
             StateHasChanged();
         }
     }
@@ -197,7 +194,7 @@
         }
     }
 
-    private async Task RestaurarPadrao()
+    private void RestaurarPadrao()
     {
         if (salvando) return;
 
