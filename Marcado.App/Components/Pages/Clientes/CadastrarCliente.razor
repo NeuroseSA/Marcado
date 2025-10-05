@@ -33,13 +33,8 @@
 
             <div class="form-group">
                 <label for="telefone">Telefone</label>
-                <input id="telefone" 
-                       class="input" 
-                       @bind="telefoneFormatado" 
-                       @bind:event="oninput"
-                       @bind:after="AtualizarTelefone"
-                       placeholder="(11) 99999-9999"
-                       maxlength="15" />
+                <input id="telefone" class="input" @bind="telefoneFormatado" @bind:event="oninput"
+                    @bind:after="AtualizarTelefone" placeholder="(11) 99999-9999" maxlength="15" />
             </div>
 
             <div class="form-group">
@@ -48,7 +43,9 @@
             </div>
 
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary">@(isModoEdicao ? "Atualizar Cliente" : "Adicionar Cliente")</button>
+                <button type="submit" class="btn btn-primary">
+                    @(isModoEdicao ? "Atualizar Cliente" : "Adicionar Cliente")
+                </button>
                 <button type="button" class="btn btn-secondary" @onclick="Cancelar">Cancelar</button>
             </div>
         </EditForm>
@@ -60,14 +57,14 @@
     private int? ClienteId { get; set; }
     private bool isModoEdicao => ClienteId.HasValue;
     [Inject] private NavigationManager Navigation { get; set; } = default!;
-    
+
     // Propriedade para controlar a máscara do telefone
     private string telefoneFormatado = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
         ClienteId = _estadoNavegacao.ObterClienteParaEdicao();
-        
+
         if (ClienteId.HasValue)
         {
             var clienteExistente = await _clientesServico.ObterClientePorIdAsync(ClienteId.Value);
@@ -83,18 +80,18 @@
             }
         }
     }
-    
+
     private void AtualizarTelefone()
     {
         // Aplica a máscara enquanto o usuário digita
         telefoneFormatado = FormatacaoHelper.AplicarMascaraTelefoneInput(telefoneFormatado);
-        
+
         // Atualiza o valor limpo no modelo
         novoCliente.Telefone = FormatacaoHelper.RemoverMascaraTelefone(telefoneFormatado);
-        
+
         StateHasChanged();
     }
-    
+
     private async Task SalvarCliente()
     {
         if (isModoEdicao)

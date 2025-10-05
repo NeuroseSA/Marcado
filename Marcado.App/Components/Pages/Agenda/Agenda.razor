@@ -3,6 +3,7 @@
 @using System.Globalization
 @using System.Linq
 @using Marcado.Core.Entidades
+@using Marcado.Core.Entidades.Enum
 @using Marcado.Core.Servicos
 @using Marcado.Core.Servicos.Interfaces
 @using Marcado.App.Helpers
@@ -278,16 +279,11 @@
     private bool modoEdicao = false;
     private Agendamento novoAgendamento = new Agendamento();
     private List<Cliente> clientes = new List<Cliente>();
-
-    // Propriedades para o autocomplete
     private string clienteBusca = string.Empty;
     private bool mostrarListaClientes = false;
     private Cliente? clienteSelecionado = null;
-
     private List<AgendaSlot> agendaSlots = new();
     private HashSet<DateTime> DiasFechados = new();
-
-    // Configurações de horárioC# Dev Kit
     private ConfiguracaoHorario? configuracaoHorario;
     private TimeSpan horaInicio = new(8, 0, 0);
     private TimeSpan horaFim = new(18, 0, 0);
@@ -550,7 +546,7 @@
         {
             _feedbackService.MostrarErro(
                 "Dia Inativo",
-                "Este dia da semana está desabilitado nas configurações. Para agendar neste dia, primeiro ative-o nas configurações de horários."
+                @"Este dia da semana está desabilitado nas configurações. Para agendar neste dia, primeiro ative-o nas configurações de horários."
             );
             return;
         }
@@ -1068,7 +1064,7 @@
         };
     }
 
-    private async Task CarregarAgendamentosMes()
+                private async Task CarregarAgendamentosMes()
     {
         var inicioMes = new DateTime(DataSelecionada.Year, DataSelecionada.Month, 1);
         var fimMes = inicioMes.AddMonths(1).AddDays(-1);
@@ -1080,31 +1076,5 @@
             .ToList();
     }
     #endregion Progresso Mensal
-
-    public class AgendaSlot
-    {
-        public int Hora { get; set; }
-        public string Status { get; set; } = "Livre";
-        public string Descricao { get; set; } = "";
-        public Cliente? Cliente { get; set; }
-        public int? AgendamentoId { get; set; }
-    }
-
-    public class ProgressoDia
-    {
-        public int Percentual { get; set; }
-        public string StatusTexto { get; set; } = "";
-        public StatusDia TipoStatus { get; set; }
-        public string StatusCss { get; set; } = string.Empty;
-    }
-
-    public enum StatusDia
-    {
-        Livre,
-        Parcial,
-        Completo,
-        Fechado,
-        Inativo
-    }
 }
 
