@@ -805,7 +805,7 @@
             else
             {
                 // Criar novo agendamento
-                novoAgendamento.Cliente = clienteSelecionado;
+                novoAgendamento.Cliente = null;
                 novoAgendamento.Status = "Agendado";
                 novoAgendamento.UsuarioId = 1; // TODO: substituir pelo ID do usuário logado
                 await _agendamentoServico.AgendarServicoAsync(novoAgendamento);
@@ -1064,7 +1064,7 @@
         };
     }
 
-                private async Task CarregarAgendamentosMes()
+    private async Task CarregarAgendamentosMes()
     {
         var inicioMes = new DateTime(DataSelecionada.Year, DataSelecionada.Month, 1);
         var fimMes = inicioMes.AddMonths(1).AddDays(-1);
