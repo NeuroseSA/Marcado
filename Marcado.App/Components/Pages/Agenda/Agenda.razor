@@ -273,7 +273,9 @@
 
 
 @code {
-    private DateTime DataSelecionada = DateTime.Today;
+
+    [SupplyParameterFromQuery(Name = "data")]
+    public DateTime DataSelecionada { get; set; }
     private string ModoVisualizacao = "diaria"; // mensal, diaria
     private bool mostrarModal = false;
     private bool modoEdicao = false;
@@ -293,6 +295,9 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (DataSelecionada == default)
+            DataSelecionada = DateTime.Today;
+            
         await CarregarConfiguracoes();
         await CarregarSlots();
         await CarregarAgendamentosMes();
@@ -715,7 +720,7 @@
     // Métodos para o atalho de histórico do cliente
     private void AbrirHistoricoCliente(int clienteId)
     {
-        Navigation.NavigateTo($"/clientes/historico/{clienteId}?returnUrl=/agenda", forceLoad: true);
+        Navigation.NavigateTo($"/clientes/historico/{clienteId}?returnUrl=/agenda?data={DataSelecionada:yyyy-MM-dd}", forceLoad: true);
     }
 
     private async Task CliqueSlot(AgendaSlot slot)
