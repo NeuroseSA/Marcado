@@ -42,7 +42,7 @@
         @if (!diaAtual_ativo)
         {
             <div class="alert alert-warning">
-                <strong>⚠️ Dia Inativo</strong> - Este dia da semana está desabilitado nas configurações. 
+                <strong>⚠️ Dia Inativo</strong> - Este dia da semana está desabilitado nas configurações.
                 <a href="/config/horarios" class="alert-link">Clique aqui para configurar</a>
             </div>
         }
@@ -57,7 +57,9 @@
                         <div class="descricao">
                             @if (slot.Status == "Agendado" || slot.Status == "Realizado")
                             {
-                                <strong>@slot.Cliente?.Nome</strong><br />
+                                <strong>@slot.Cliente?.Nome</strong>
+                    
+                                <br />
                                 <span>@slot.Descricao</span>
                             }
                             else
@@ -88,15 +90,15 @@
                     @{
                         var primeiroDiaMes = new DateTime(DataSelecionada.Year, DataSelecionada.Month, 1);
                         var ultimoDiaMes = new DateTime(DataSelecionada.Year, DataSelecionada.Month, DateTime.DaysInMonth(DataSelecionada.Year, DataSelecionada.Month));
-                        
+
                         // Calcular quantos dias do mês anterior mostrar
                         var diasAntesDoInicio = (int)primeiroDiaMes.DayOfWeek;
                         var dataInicio = primeiroDiaMes.AddDays(-diasAntesDoInicio);
-                        
+
                         // Calcular quantos dias do próximo mês mostrar
                         var diasDepoisDoFim = 6 - (int)ultimoDiaMes.DayOfWeek;
                         var dataFim = ultimoDiaMes.AddDays(diasDepoisDoFim);
-                        
+
                         // Preencher o calendário
                         for (var data = dataInicio; data <= dataFim; data = data.AddDays(1))
                         {
@@ -104,23 +106,23 @@
                             var isDoMesAtual = data.Month == DataSelecionada.Month;
                             var progressoDia = isDoMesAtual ? ObterProgressoDia(data) : null;
                             var cssClass = GetCssClassesDia(data, isDoMesAtual, progressoDia);
-                            
+
                             <div class="@cssClass" @onclick="() => SelecionarDiaCalendario(diaSelecaoMensal, isDoMesAtual)">
                                 <div class="dia-numero">
                                     @data.Day
                                 </div>
-                                
+
                                 @if (isDoMesAtual && progressoDia != null)
                                 {
                                     <div class="dia-conteudo">
                                         @if (progressoDia.TipoStatus != StatusDia.Inativo)
                                         {
                                             <div class="barra-progresso-mini">
-                                                <div class="progresso-fill-mini" 
+                                                <div class="progresso-fill-mini"
                                                      style="width: @(progressoDia.Percentual)%; background: @(ObterCorProgresso(progressoDia))"></div>
                                             </div>
                                         }
-                                        
+
                                         <div class="status-indicator">
                                             <span class="badge-mini @(progressoDia.StatusCss)">
                                                 @progressoDia.StatusTexto
@@ -142,127 +144,127 @@
     {
         <link href="css/agenda-modal.css" rel="stylesheet" />
         <div class="modal-overlay" @onclick="FecharModal">
-        <EditForm Model="@novoAgendamento" OnValidSubmit="SalvarAgendamento">
-            <DataAnnotationsValidator />
-            <ValidationSummary />
-            <div class="modal-content" @onclick:stopPropagation="true">
-                <button class="modal-close" @onclick="FecharModal" aria-label="Fechar modal">×</button>
-                <h3 class="modal-title">@(modoEdicao ? "Editar Agendamento" : "Novo Agendamento")</h3>
+            <EditForm Model="@novoAgendamento" OnValidSubmit="SalvarAgendamento">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+                <div class="modal-content" @onclick:stopPropagation="true">
+                    <button class="modal-close" @onclick="FecharModal" aria-label="Fechar modal">×</button>
+                    <h3 class="modal-title">@(modoEdicao ? "Editar Agendamento" : "Novo Agendamento")</h3>
 
-                <div class="modal-field">
-                    <label class="modal-label">Cliente *</label>
-                    <div class="cliente-selection-container">
-                        <div class="autocomplete-container">
-                            <input type="text"
-                                   @bind="clienteBusca"
-                                   @bind:event="oninput"
-                                   @bind:after="BuscarClientes"
-                                   @onfocus="MostrarListaClientes"
-                                   @onblur="OcultarListaClientes"
-                                   placeholder="Digite o nome do cliente"
-                                   class="modal-input autocomplete-input"
-                                   autocomplete="off" />
+                    <div class="modal-field">
+                        <label class="modal-label">Cliente *</label>
+                        <div class="cliente-selection-container">
+                            <div class="autocomplete-container">
+                                <input type="text"
+                                       @bind="clienteBusca"
+                                       @bind:event="oninput"
+                                       @bind:after="BuscarClientes"
+                                       @onfocus="MostrarListaClientes"
+                                       @onblur="OcultarListaClientes"
+                                       placeholder="Digite o nome do cliente"
+                                       class="modal-input autocomplete-input"
+                                       autocomplete="off" />
 
-                            @if (mostrarListaClientes && clientes.Any())
-                            {
-                                <div class="autocomplete-dropdown">
-                                    @foreach (var cliente in clientes.Take(8))
-                                    {
-                                        <div class="autocomplete-item"
-                                             @onmousedown="() => SelecionarCliente(cliente)"
-                                             @onmousedown:preventDefault="true">
-                                            <div class="cliente-nome">@cliente.Nome</div>
-                                            <div class="cliente-info">@FormatacaoHelper.FormatarTelefone(cliente.Telefone) - @cliente.Email</div>
-                                        </div>
-                                    }
-                                </div>
-                            }
-
-                            @if (mostrarListaClientes && !clientes.Any() && !string.IsNullOrWhiteSpace(clienteBusca))
-                            {
-                                <div class="autocomplete-dropdown">
-                                    <div class="autocomplete-item no-results">
-                                        Nenhum cliente encontrado
+                                @if (mostrarListaClientes && clientes.Any())
+                                {
+                                    <div class="autocomplete-dropdown">
+                                        @foreach (var cliente in clientes.Take(8))
+                                        {
+                                            <div class="autocomplete-item"
+                                                 @onmousedown="() => SelecionarCliente(cliente)"
+                                                 @onmousedown:preventDefault="true">
+                                                <div class="cliente-nome">@cliente.Nome</div>
+                                                <div class="cliente-info">@FormatacaoHelper.FormatarTelefone(cliente.Telefone) - @cliente.Email</div>
+                                            </div>
+                                        }
                                     </div>
+                                }
+
+                                @if (mostrarListaClientes && !clientes.Any() && !string.IsNullOrWhiteSpace(clienteBusca))
+                                {
+                                    <div class="autocomplete-dropdown">
+                                        <div class="autocomplete-item no-results">
+                                            Nenhum cliente encontrado
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+
+                            @* Atalho rápido para histórico do cliente *@
+                            @if (novoAgendamento.ClienteId.HasValue && novoAgendamento.ClienteId > 0)
+                            {
+                                <div class="cliente-actions">
+                                    <button type="button"
+                                            class="btn-historico-quick"
+                                            @onclick="() => AbrirHistoricoCliente(novoAgendamento.ClienteId.Value)"
+                                            title="Ver histórico do cliente">
+                                        📋
+                                    </button>
+                                    <span class="cliente-selecionado-info">
+                                        <strong>Ver histórico do cliente</strong>
+                                    </span>
                                 </div>
                             }
                         </div>
-                        
-                        @* Atalho rápido para histórico do cliente *@
-                        @if (novoAgendamento.ClienteId.HasValue && novoAgendamento.ClienteId > 0)
+                    </div>
+
+                    <div class="modal-row">
+                        <div class="modal-col">
+                            <label class="modal-label">Data</label>
+                            <input type="date" @bind="novoAgendamento.Data" @bind:format="yyyy-MM-dd" class="modal-input" />
+                        </div>
+
+                        <div class="modal-col">
+                            <label class="modal-label">Hora</label>
+                            <select @bind="novoAgendamento.Hora" class="modal-input">
+                                @foreach (var hora in GerarHorasDisponiveis())
+                                {
+                                    @if (!VerificarHoraDisponivel(hora))
+                                    {
+                                        <option value="@hora" disabled style="text-decoration: line-through; color: #941111;">@hora:00</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@hora">@hora:00</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="modal-field">
+                        <label class="modal-label">Descrição</label>
+                        <textarea @bind="novoAgendamento.Servico" rows="3" placeholder="Descrição do agendamento"
+                                  class="modal-textarea"></textarea>
+                    </div>
+
+                    <div class="modal-field">
+                        <label class="modal-label">Valor</label>
+                        <input type="text"
+                               @bind="valorFormatado"
+                               @oninput="OnValorInput"
+                               class="modal-input"
+                               inputmode="decimal"
+                               placeholder="R$ 0,00"
+                               maxlength="15" />
+                    </div>
+
+                    <div class="modal-actions">
+                        @if (modoEdicao && novoAgendamento.Status != "Realizado")
                         {
-                            <div class="cliente-actions">
-                                <button type="button" 
-                                        class="btn-historico-quick" 
-                                        @onclick="() => AbrirHistoricoCliente(novoAgendamento.ClienteId.Value)"
-                                        title="Ver histórico do cliente">
-                                    📋
-                                </button>
-                                <span class="cliente-selecionado-info">
-                                    <strong>Ver histórico do cliente</strong>
-                                </span>
-                            </div>
+                            <button type="button" @onclick="CancelarAgendamento" class="modal-btn modal-btn-delete">
+                                Cancelar
+                            </button>
+                            <button type="button" @onclick="MarcarComoRealizado" class="modal-btn modal-btn-realizado">
+                                Realizado
+                            </button>
                         }
-                    </div>
-                </div>
-
-                <div class="modal-row">
-                    <div class="modal-col">
-                        <label class="modal-label">Data</label>
-                        <input type="date" @bind="novoAgendamento.Data" @bind:format="yyyy-MM-dd" class="modal-input" />
-                    </div>
-
-                    <div class="modal-col">
-                        <label class="modal-label">Hora</label>
-                        <select @bind="novoAgendamento.Hora" class="modal-input">
-                            @foreach (var hora in GerarHorasDisponiveis())
-                            {
-                                @if (!VerificarHoraDisponivel(hora))
-                                {
-                                    <option value="@hora" disabled style="text-decoration: line-through; color: #941111;">@hora:00</option>
-                                }
-                                else
-                                {
-                                    <option value="@hora">@hora:00</option>
-                                }
-                            }
-                        </select>
-                    </div>
-                </div>
-
-                <div class="modal-field">
-                    <label class="modal-label">Descrição</label>
-                    <textarea @bind="novoAgendamento.Servico" rows="3" placeholder="Descrição do agendamento"
-                        class="modal-textarea"></textarea>
-                </div>
-
-                <div class="modal-field">
-                    <label class="modal-label">Valor</label>
-                    <input type="text"
-                           @bind="valorFormatado"
-                           @oninput="OnValorInput"
-                           class="modal-input"
-                           inputmode="decimal"
-                           placeholder="R$ 0,00"
-                           maxlength="15" />
-                </div>
-
-                <div class="modal-actions">
-                    @if (modoEdicao && novoAgendamento.Status != "Realizado")
-                    {
-                        <button type="button" @onclick="CancelarAgendamento" class="modal-btn modal-btn-delete">
-                            Cancelar
+                        <button type="submit" class="modal-btn modal-btn-save">
+                            @(modoEdicao ? "Atualizar" : "Salvar")
                         </button>
-                        <button type="button" @onclick="MarcarComoRealizado" class="modal-btn modal-btn-realizado">
-                            Realizado
-                        </button>
-                    }
-                    <button type="submit" class="modal-btn modal-btn-save">
-                        @(modoEdicao ? "Atualizar" : "Salvar")
-                    </button>
+                    </div>
                 </div>
-            </div>
-        </EditForm>
+            </EditForm>
         </div>
     }
 
@@ -273,7 +275,7 @@
     private DateTime DataSelecionada = DateTime.Today;
     private string ModoVisualizacao = "diaria"; // mensal, diaria
     private bool mostrarModal = false;
-        private bool modoEdicao = false;
+    private bool modoEdicao = false;
     private Agendamento novoAgendamento = new Agendamento();
     private List<Cliente> clientes = new List<Cliente>();
 
@@ -284,8 +286,8 @@
 
     private List<AgendaSlot> agendaSlots = new();
     private HashSet<DateTime> DiasFechados = new();
-    
-    // Configurações de horário
+
+    // Configurações de horárioC# Dev Kit
     private ConfiguracaoHorario? configuracaoHorario;
     private TimeSpan horaInicio = new(8, 0, 0);
     private TimeSpan horaFim = new(18, 0, 0);
@@ -305,7 +307,7 @@
         try
         {
             configuracaoHorario = await _configuracaoServico.ObterConfiguracaoAsync(1); // TODO: Usar ID do usuário logado
-            
+
             if (configuracaoHorario != null)
             {
                 horaInicio = configuracaoHorario.HoraInicio;
@@ -322,10 +324,10 @@
     private async Task CarregarSlots()
     {
         agendaSlots.Clear();
-        
+
         // Verificar se o dia está ativo
         diaAtual_ativo = VerificarDiaAtivo(DataSelecionada);
-        
+
         if (!diaAtual_ativo)
         {
             StateHasChanged();
@@ -380,11 +382,11 @@
     private List<int> GerarHorasDisponiveis()
     {
         var horas = new List<int>();
-        
+
         // Converter TimeSpan para horas inteiras
         var horaInicioInt = horaInicio.Hours;
         var horaFimInt = horaFim.Hours;
-        
+
         // Gerar slots baseados no intervalo configurado
         if (intervaloSlots == 60)
         {
@@ -414,7 +416,7 @@
                 }
             }
         }
-        
+
         return horas;
     }
 
@@ -458,7 +460,7 @@
 
         if (ModoVisualizacao == "diaria")
             await CarregarSlots();
-        
+
         StateHasChanged();
     }
 
@@ -501,12 +503,12 @@
         if (agendamentosAtivos.Any())
         {
             var quantidadeAgendamentos = agendamentosAtivos.Count;
-            var mensagem = quantidadeAgendamentos == 1 
+            var mensagem = quantidadeAgendamentos == 1
                 ? "Existe 1 agendamento ativo para este dia. O restante a agenda foi fechada!"
                 : $"Existem {quantidadeAgendamentos} agendamentos ativos para este dia. O restante a agenda foi fechada!";
 
             _feedbackService.MostrarAlerta(
-                "Atenção!", 
+                "Atenção!",
                 mensagem,
                 8000 // 8 segundos para dar tempo de ler
             );
@@ -547,7 +549,7 @@
         if (!VerificarDiaAtivoSincrono(data))
         {
             _feedbackService.MostrarErro(
-                "Dia Inativo", 
+                "Dia Inativo",
                 "Este dia da semana está desabilitado nas configurações. Para agendar neste dia, primeiro ative-o nas configurações de horários."
             );
             return;
@@ -586,7 +588,7 @@
         else
         {
             classes.Add("mes-atual");
-            
+
             if (progressoDia != null)
             {
                 switch (progressoDia.TipoStatus)
@@ -632,18 +634,18 @@
         if (!VerificarDiaAtivo(DataSelecionada))
         {
             _feedbackService.MostrarErro(
-                "Dia Inativo", 
+                "Dia Inativo",
                 "Este dia da semana está desabilitado nas configurações. Acesse as configurações para habilitá-lo."
             );
             return;
         }
 
         modoEdicao = false;
-        
+
         // Definir hora inicial baseada na configuração
         var horasDisponiveis = GerarHorasDisponiveis();
         var horaInicial = horasDisponiveis.FirstOrDefault();
-        
+
         novoAgendamento = new Agendamento
         {
             Data = DataSelecionada,
@@ -726,7 +728,7 @@
         if (!VerificarDiaAtivo(DataSelecionada))
         {
             _feedbackService.MostrarErro(
-                "Dia Inativo", 
+                "Dia Inativo",
                 "Este dia da semana está desabilitado nas configurações."
             );
             return;
@@ -754,7 +756,7 @@
         {
             // Modo edição
             modoEdicao = true;
-            
+
             // Carregar dados do agendamento
             var agendamento = await _agendamentoServico.ObterAgendamentoPorIdAsync(slot.AgendamentoId.Value);
             if (agendamento != null)
@@ -812,10 +814,10 @@
                 novoAgendamento.UsuarioId = 1; // TODO: substituir pelo ID do usuário logado
                 await _agendamentoServico.AgendarServicoAsync(novoAgendamento);
             }
-            
+
             // Recarregar os slots para refletir as mudanças
             await CarregarSlots();
-            
+
             // Mostrar feedback de sucesso
             if (modoEdicao)
             {
@@ -844,7 +846,7 @@
         mostrarModal = false;
         StateHasChanged();
     }
-    
+
     private async Task CancelarAgendamento()
     {
         if (modoEdicao && novoAgendamento.Id > 0)
@@ -853,12 +855,12 @@
             {
                 await _agendamentoServico.CancelarAgendamentoAsync(novoAgendamento.Id);
                 await CarregarSlots();
-                
+
                 _feedbackService.MostrarSucesso(
                     "Agendamento Cancelado!",
                     "O agendamento foi cancelado com sucesso."
                 );
-                
+
                 mostrarModal = false;
                 StateHasChanged();
             }
@@ -881,12 +883,12 @@
                 novoAgendamento.Status = "Realizado";
                 await _agendamentoServico.AtualizarAgendamentoAsync(novoAgendamento);
                 await CarregarSlots();
-                
+
                 _feedbackService.MostrarSucesso(
                     "Agendamento Marcado como Realizado!",
                     "O agendamento foi marcado como realizado com sucesso."
                 );
-                
+
                 mostrarModal = false;
                 StateHasChanged();
             }
@@ -935,7 +937,7 @@
     {
         // Remove tudo que não é dígito
         var apenasNumeros = new string(valor.Where(char.IsDigit).ToArray());
-        
+
         if (string.IsNullOrEmpty(apenasNumeros))
             return "";
 
@@ -1008,30 +1010,30 @@
         ProgressoDia status;
         if (percentual == 0)
         {
-            status = new ProgressoDia 
-            { 
-                Percentual = 0, 
-                StatusTexto = "Livre", 
+            status = new ProgressoDia
+            {
+                Percentual = 0,
+                StatusTexto = "Livre",
                 TipoStatus = StatusDia.Livre,
                 StatusCss = "livre"
             };
         }
         else if (percentual >= 100)
         {
-            status = new ProgressoDia 
-            { 
-                Percentual = 100, 
-                StatusTexto = "Completo", 
+            status = new ProgressoDia
+            {
+                Percentual = 100,
+                StatusTexto = "Completo",
                 TipoStatus = StatusDia.Completo,
                 StatusCss = "completo"
             };
         }
         else
         {
-            status = new ProgressoDia 
-            { 
-                Percentual = percentual, 
-                StatusTexto = $"{horariosOcupados}/{totalHorarios}", 
+            status = new ProgressoDia
+            {
+                Percentual = percentual,
+                StatusTexto = $"{horariosOcupados}/{totalHorarios}",
                 TipoStatus = StatusDia.Parcial,
                 StatusCss = "parcial"
             };
@@ -1047,7 +1049,7 @@
         else if (percentual <= 25)
             return "#ef4444"; // Vermelho - baixa ocupação
         else if (percentual <= 50)
-            return "#f59e0b"; // Amarelo - média ocupação  
+            return "#f59e0b"; // Amarelo - média ocupação
         else if (percentual <= 75)
             return "#3b82f6"; // Azul - alta ocupação
         else if (percentual < 100)
@@ -1070,7 +1072,7 @@
     {
         var inicioMes = new DateTime(DataSelecionada.Year, DataSelecionada.Month, 1);
         var fimMes = inicioMes.AddMonths(1).AddDays(-1);
-        
+
         // Carregar todos os agendamentos do mês
         agendamentosCache = await _agendamentoServico.ObterAgendamentosAsync(1, null);
         agendamentosCache = agendamentosCache
@@ -1093,7 +1095,7 @@
         public int Percentual { get; set; }
         public string StatusTexto { get; set; } = "";
         public StatusDia TipoStatus { get; set; }
-        public string StatusCss { get; set; } = string.Empty; 
+        public string StatusCss { get; set; } = string.Empty;
     }
 
     public enum StatusDia
